@@ -1,0 +1,142 @@
+
+==============================
+Parallel Parentheses Balancing
+==============================
+
+Parsing:  (((-((()))+(((())))*)))
+
+Sections traversed:
+
+         |1|         |2|                    |3|         |4|
+                                                              
+        (((-(       (()))+                (((())      ))*)))
+
+          |           |                     |           |         
+          |           |                     |           |       
+          v           v                     v           v
+
+        (4,0,0,4)   (2,3,1,0)             (4,2,0,2)   (0,5,5,0)   --> traverse result: (openTotal, closedTotal, negativeTotal, positiveTotal)
+            \          /                     \          /    
+             \        /                       \        /          --> recursive return
+              (6,3,0,3)                       (4,7,3,0)                      
+                  \                             /                                        
+                   \                           /                                                              
+                    \_________________________/                   --> recursive return                                                                     
+                               |
+                               v
+                           (10,10,0,0)
+
+
+
+
+
+
+
+=============
+Line of Sight
+=============
+
+-----------------------------------------------------------------------------------------------------
+Testing  downsweep(input: Array[Float], output: Array[Float], startingAngle: Float, tree: Tree): Unit
+input: val input = Array[Float](0f, 1f, 8f, 9f)
+-----------------------------------------------------------------------------------------------------
+
+upsweep tree (threshold = 2):
+                                        ----Node - maxPrevious: 4.0--- 
+                                       /                              \              
+                                      /                                \             
+            Leaf from(1) until(2) maxPrevious(1.0)               Node - maxPrevious: 4.0
+                                                                   /                   \
+                                                                  /                     \
+                                        Leaf from(2) until(3) maxPrevious(4.0)       Leaf from(3) until(4) maxPrevious(3.0)
+
+execution of downsweep:
+
+-------- Node start --- startingAngle: 0.0
+Node: maxPrevious(4.0)
+currentMaxLeft: 1.0 
+currentMaxRight: 4.0 
+
+Calling downsweep(input, output, 1.0, left)
+  -------- Leaf start  --- startingAngle: 1.0
+  Leaf: 1 2 1.0
+  Calling downsweepSequential(input, output, 1.0, 1, 2)
+  -------- Leaf end 
+
+Calling downsweep(input, output, 4.0, right)
+  -------- Node start --- startingAngle: 4.0
+  Node: maxPrevious(4.0)
+  currentMaxLeft: 4.0 
+  currentMaxRight: 4.0 
+  Calling downsweep(input, output, 4.0, left)
+    -------- Leaf start  --- startingAngle: 4.0
+    Leaf: 2 3 4.0
+    Calling downsweepSequential(input, output, 4.0, 2, 3)
+    -------- Leaf end 
+
+  Calling downsweep(input, output, 4.0, right)
+    -------- Leaf start  --- startingAngle: 4.0
+    Leaf: 3 4 3.0
+    Calling downsweepSequential(input, output, 4.0, 3, 4)
+    -------- Leaf end 
+
+  -------- Node end 
+
+-------- Node end 
+
+
+
+
+
+
+
+-----------------------------------------------------------------------------------------------------
+Testing  downsweep(input: Array[Float], output: Array[Float], startingAngle: Float, tree: Tree): Unit
+input: val input = Array[Float](0f, 1f, 8f, 9f, 3f, 3f, 3f, 3f, 3f, 3f, 3f, 55f)
+-----------------------------------------------------------------------------------------------------
+
+upsweep tree (threshold = 6):
+
+                                        --- Node - maxPrevious: 5.0---
+                                       /                              \              
+                                      /                                \             
+       Leaf from(1) until(6) maxPrevious(4.0)                   Node - maxPrevious: 5.0
+                                                                   /                   \
+                                                                  /                     \
+                                        Leaf from(6) until(9) maxPrevious(0.5)        Leaf from(9) until(12) maxPrevious(5.0)
+
+
+execution of downsweep:
+
+-------- Node start --- startingAngle: 0.0
+Node: maxPrevious(5.0)
+leftStartingAngle: 0.0 
+rightStartingAngle: 4.0 
+
+Calling downsweep(input, output, 0.0, left)
+  -------- Leaf start  --- startingAngle: 0.0
+  Leaf: 1 6 4.0
+  Calling downsweepSequential(input, output, 0.0, 1, 6)
+  -------- Leaf end 
+
+Calling downsweep(input, output, 4.0, right)
+  -------- Node start --- startingAngle: 4.0
+  Node: maxPrevious(5.0)
+  leftStartingAngle: 4.0 
+  rightStartingAngle: 4.0 
+
+  Calling downsweep(input, output, 4.0, left)
+    -------- Leaf start  --- startingAngle: 4.0
+    Leaf: 6 9 0.5
+    Calling downsweepSequential(input, output, 4.0, 6, 9)
+    -------- Leaf end 
+
+  Calling downsweep(input, output, 4.0, right)
+    -------- Leaf start  --- startingAngle: 4.0
+    Leaf: 9 12 5.0
+    Calling downsweepSequential(input, output, 4.0, 9, 12)
+    -------- Leaf end 
+
+  -------- Node end 
+  
+-------- Node end 

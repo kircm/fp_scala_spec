@@ -1,0 +1,124 @@
+
+Assignments
+-----------
+
+- Huffman code
+  abstract class CodeTree
+
+  case class Fork(left: CodeTree, right: CodeTree, chars: List[Char], weight: Int) extends CodeTree
+
+  case class Leaf(char: Char, weight: Int) extends CodeTree
+
+
+
+- Example of makeCodeTree:
+
+    val sampleTree =
+      makeCodeTree(
+        makeCodeTree(Leaf('x', 1), Leaf('e', 1)),
+        Leaf('t', 2))
+                                                                      
+                                        xet(4)  
+                                         |
+                               |-------------------- 
+                               |                   |                    
+                           ---------              t(2)                             
+                           |       |                                           
+                          x(1)    e(1)                                            
+                                                                    
+                                                                    
+- times(chars: List[Char]): List[(Char, Int)]
+
+     Input  ('a', 'c', 'a', 'b')
+      
+     Output (('a', 2), ('b', 1), ('c', 1)) 
+                                                                    
+                                                                    
+                                                                    
+                                                                
+                                                                    
+- makeOrderedLeafList
+
+   def makeOrderedLeafList(freqs: List[(Char, Int)]): List[Leaf] = ???
+                                                                    
+                                                                    
+      Input      List[(Char, Int)]  (('a', 2), ('b', 1), ('c', 1)) 
+                 (list of pairs)
+      
+      Output     List[Leaf]    (Leaf('b', 1), Leaf('c', 1), Leaf('a', 2))
+      
+                                                                
+                                                                    
+- combine
+   
+   def combine(trees: List[CodeTree]): List[CodeTree] = ???
+
+
+       Input    List(Leaf('e', 1), Leaf('t', 2), Leaf('x', 4))
+       Output   List(Fork(Leaf('e', 1), Leaf('t', 2), List('e', 't'), 3), Leaf('x', 4)))                                                                    
+                                                                    
+       Input    List(Fork(Leaf('e', 1), Leaf('t', 2), List('e', 't'), 3), Leaf('x', 4)))
+       Output   
+       
+          
+                                        Fet(3)                     Lx(4)
+                                         |
+                               |-------------------- 
+                               |                   |
+                              Le(1)                Lt(2)              
+                               
+                               
+                               
+                                        Fxet(7)  
+                                         |
+                               |-------------------- 
+                               |                   |
+                              Fet(3)               | 
+                           ---------             Lx(4)                             
+                           |       |                                           
+                          Le(1)   Lt(2)                                            
+                                                                    
+                                                                    
+                                                                    
+
+
+- until, decode
+
+    val sxetTree =
+      Fork(
+        Fork(
+          Fork(
+            Leaf('e', 1),
+            Leaf('t', 2),
+            List('e', 't'),
+            3),
+          Leaf('x', 4),
+          List('x', 'e', 't'),
+          7),
+        Leaf('s', 8),
+        List('s', 'x', 'e', 't'),
+        15)
+                  /*  F: fork   L: leaf
+
+                                                                   Fsxet(15)
+                                                                     |
+                                                           ---------------------
+                                                           |                   |
+                                                         Fxet(7)             Ls(8)
+                                                           |
+                                                 ---------------------
+                                                 |                   |
+                                                Fet(3)              Lx(4)
+                                             ---------
+                                             |       |
+                                            Le(1)   Lt(2)
+                  */
+
+     decoded: ssssssexxxxtt
+     
+     encoded: 11111100001010101001001
+                                                                    
+                                                                    
+                                                                    
+                                                                    
+                                             

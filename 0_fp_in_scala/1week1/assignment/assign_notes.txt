@@ -1,0 +1,91 @@
+
+Assignments
+-----------
+
+
+- Pascal triangle
+                              col, row:
+    1                          (0,0)                                 
+   1 1                     (0,1)   (1,1)                                 
+  1 2 1                (0,2)   (1,2)   (2,2)                                   
+ 1 3 3 1           (0,3)   (1,3)   (2,3)   (3,3)                                  
+1 4 6 4 1         
+   ...
+
+
+
+
+
+- Parenthesis Balancing
+  ( my ex (ample) )
+
+  (counting) (is not) )(enough  ===> partial number of pars pending to close can't be negative
+
+
+
+
+
+
+- Counting change
+  
+  - examples:
+  
+  amount      denominations
+  ------      -------------
+  10          (1  5  10)    ---> 4 ways of giving change:
+                                 1- 10 coins of 1                    1+1+1+1+1+1+1+1+1+1
+                                 2- 5 coins of 1 + 1 coin of 5       1+1+1+1+1 + 5
+                                 3- 2 coins of 5                     5+5                                 
+                                 4- 1 coin of 10                     10
+                                   
+  5          (1  5)         ---> 2 ways of giving change:
+                                 1- 5 coins of 1                     1+1+1+1+1
+                                 2- 1 coin of 5                      5
+    
+
+- Trying to break it down in recursive operations...
+  -  10 (1 5 10)
+         | |  |
+         |---------- 1 way: 10 % 1 = 0                              ----> +1
+         | |  |
+         | |-------- 1 way: 10 % 5 = 0                              ----> +1
+         | |  |
+         |-|-------- 1 way combined: 10/5 = 2   --> 2 % 1 = 0       ----> +1
+         | |  |
+           |--|----- 0 ways combined: 10/10 = 1 --> 1 % 5 = 0.0xx   ----> +0
+              |
+              |----- 1 way: 10 % 10 = 0                             ----> +1
+           
+
+- Theory:
+
+ N ways of giving change with coins (C1, C2, ... Cn) for money Mn =     
+    1 or 0 ways of giving change with one coin C1
+      +
+    M ways of giving change when money is C2 using C1 coins
+      +
+      .
+      .
+      +
+    Z ways of giving change when money is Cn using C(n-1) coins
+ 
+           
+                                                                              
+                                                                              
+                                                                              
+                                                                              
+                                                                              
+                                                                              
+                                                                              
+              
+              
+                                        
+      
+
+
+
+
+
+
+
+ 

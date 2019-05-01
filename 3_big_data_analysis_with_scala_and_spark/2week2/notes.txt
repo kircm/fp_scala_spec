@@ -1,0 +1,114 @@
+
+===============================================
+Big Data Analysis with Scala and Spark - week 2
+===============================================
+
+--------------------
+Reduction Operations
+--------------------
+- Spark's programming model relies on:
+  - using laziness to save time and memory
+  - distinction between transformations and actions
+  - caching/persisting 
+  - cluster topology
+
+- Reduction operations require combining results from calculations into a single result
+
+- Scala Collections:
+  - fold (restricted to calculations that have the same type in calculations and combinations)
+  - foldLeft/foldRight 
+  - reduce
+  - aggregate
+
+- Spark RDDs:
+  - fold
+  - reduce
+  - aggregate
+  (there is no foldLeft/foldRight)
+
+
+---------------------------
+Distributed Key-Value Pairs
+---------------------------
+- Pair RDDs
+
+- Very common because in practice to be able to work with large datasets it's good to project down complex datatypes into key-value pairs.
+
+- Example:
+  - Complex JSON:
+
+    { "people" :[                              |
+        "person" : {                           |
+          "first_name": "..."                  |--> if we are only interested in properties for our analysis it's
+          ..                                   |    more efficient to work with:          
+          "properties": {                      |    
+            "street_address": "...             |    RDD[String, Property]
+            ..."                               |    
+          }                                    |    case class Property(street: String, ...)
+      ...         
+      }
+     ] 
+    }
+
+- Key-Value Pairs are so useful that they are called PairRDDs and they have special operations defined on them
+  - Examples:
+    - groupByKey(): RDD[(K, Iterable[V])]
+
+    - reduceByKey(func: (V, V) => V): RDD[(K, V)]
+
+    - join[W](other: RDD[(K, V)]): RDD[(K, (V, W))]
+
+- Interesting PairRDDs Operations:
+  - Transformations
+    - groupByKey                       |
+    - reduceByKey                      |
+    - mapValues                        |--> Remember transformations are evaluated lazyly, without an action
+    - keys                             |    the operation doesn't happen!
+    - join                             |
+    - leftOuterJoin / rightOuterJoin   |
+  
+  - Actions
+    - countByKey
+
+- reduceByKey is more efficient than doing groupByKey + reduce
+  - Example:
+    - Having 
+        case class Event(organizer: String, name: String, budget: Int)
+      
+      to calculate total budget for each organizer:
+      
+      val eventsPairRdd = sc.parallelize(..).map(event => (event.organizer, event.budget))
+
+      val budgetsRdd = eventsRdd.reduceByKey(_ + _)
+                                             |
+                                             |--> because pairs have budgets as "value" element, we can just 
+                                                  reduce using "+" function using organizer as grouping "key"
+
+- It's a common pattern also to transform the data into pair RDDs of pair RDDs to perform operations such as average(). 
+  (look at slides)
+
+- There are many other operations specialized in pair RDDs. They are provided in the Scala class PairRDDFunctions
+
+
+
+-----
+Joins
+-----
+- They are a tranformation available for Pair RDDs
+                                                                                           |--> the resulting value is a pair
+- Operations:                                                                              |    containing one match according to key          
+  - join            ---> (inner join) signature: def join[W](other: RDD[(K, W)]): RDD[(K, (V, W))]
+  - leftOuterJoin   ---> signature: def leftOuterJoin[W](other: RDD[(K, W)]): RDD[(K, (V, Option[W]))]
+  - rightOuterJoin  ---> signature: def rightOuterJoin[W](other: RDD[(K, W)]): RDD[((V, Option[W]), K)]
+
+- Join operations in Spark are similar to SQL join operations
+- Remember that joins produce combinations of matches between two datasets. The results don't have unique keys.
+
+
+
+
+
+
+
+
+

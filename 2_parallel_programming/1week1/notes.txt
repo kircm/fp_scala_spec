@@ -1,0 +1,91 @@
+
+=============================
+Parallel Programming - week 1
+=============================
+
+- Processes vs Threads
+
+- Processes don't share memory address space whil Threads do
+
+- Processes need to make OS function calls for inte-communication while Threads don't
+
+- JVM offers constructs for multi-threading
+
+- To enforce atomicity Java and Scala provide synchronized blocks
+  - synchronize must be called on an object that's used as a monitor
+  - Example:
+    private val x = new AnyRef {}
+
+    x.synchronized {
+      .....
+    } 
+  
+  - We should avoid objects used globally as monitors and use fine-grained objects instead
+
+  - synchronize blocks can be nested to enforce atomicity in more than one mutable object:
+
+    class Account(private var amount: Int = 0) {
+      def transfer(target: Account, n: Int) {
+        this.synchronized {
+          target.synchronized {
+            this.amount -= n
+            target.amount += n
+          }
+        }
+      }
+    }
+    
+  - Problem: potential deadlocks! Thread1 acquires monitor for account1, Thread2 acquires monitor for account2, they both block each other
+
+  - Potential solution: always acquire resources in the SAME ORDER
+
+  - JVM offers a memory model: set of rules that describes how threads interact when accessing shared memory
+
+- Scala offers the "parallel" construct:
+
+  - Having array of Int a, we can sum two sections of the array in parallel:
+
+  val (sum1, sum2) = parallel(sumSegment(a, 0, m) , sumSegment(a, m, a.length))
+
+- We should consider also potential memory bottlenecks. If all CPU cores access the same memory unit there is not much benefit in parallelism, unless there is some CPU-expensive operation done for each element (like power to the 2)
+
+
+
+
+---------------------------------
+Monte Carlo method to estimate π
+---------------------------------
+
+- Having a circle within a square, producing random points we can count how many of those fall inside the circle
+
+- It's easy and efficient to parallelize this calculation
+
+
+
+
+----------------
+First-class task
+----------------
+                              
+             |--> def task(c: => A): Task[A] ---> takes a call-by-name parameter and returns a wrapper around the excution 
+             |
+- val t1 = task(e1) ---> spawns a new thread that will execute e1
+  val t2 = task(e2)
+  
+  val v1 = t1.join  ---> waits until t1 is finished
+  val v2 = t2.join
+
+
+-------------------------------
+How fast are parallel programs?
+-------------------------------
+
+- When analysing asymptotic complexity of parallel computations it turns out the Depth of a program is very relevant
+
+- Depth: D(e) number of steps the algorithm would take if we had unbounded parallelism
+
+
+
+
+
+

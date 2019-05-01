@@ -1,0 +1,139 @@
+
+==========================
+FP Design in Scala - week2
+==========================
+
+-------
+Streams
+-------
+
+- Streams are like Lists but their tail is only evaluated on demand
+
+- Usage:
+  - "Stream" in the following examples is the Stream object (companion object of the Stream trait)
+                                                               ^
+                                                               |-- A companion object is an object with the same name as a
+                                                                   class or trait and is defined in the same source file
+                                                                   as the associated file or trait. Note for Java programmers:
+                                                                    - static is not a keyword in Scala.
+                                                                      Instead, all members that would be static,
+                                                                      including classes, should go in a singleton object instead
+
+  - Stream.empty                            ----> empty stream
+  - Stream.cons("element1", Stream.empty)   ----> stream with one String element
+
+- The construction can also be done using the apply method:
+  scala> Stream(1, 2, 3)
+  res3: scala.collection.immutable.Stream[Int] = Stream(1, ?)
+                                                           ^
+                                                           |--- The constructed Stream has the first element 1
+                                                                The rest (tail) is unknown until needed
+                                                           
+
+- Stream cons Operator:
+
+  - x #:: xs --------> same as Stream.cons(x, xs)
+      ---
+       |
+       |--> stream cons operator
+
+  - can be used in patterns
+  
+
+
+- Implementation of Stream:
+  - It's very similar to the implementation of List  
+  - Differences: the tail is defined as a "by name" parameter. The parameter is only de-referenced when accessed.
+  - Example:
+  
+    |------- companion object of Stream trait. Companion objects are used for having "static" useful methods related to the trait/class
+    v
+  object Stream {              
+    def cons[T](head: T, tail: => Stream[T]): Stream[T] {
+      ...                      |
+    }                          |---> "by name" parameter
+                                     Reminder: Scala syntax 
+    ...    
+  }
+  
+  class Stream[+T] {
+    def filter[T](predicate: T => Boolean): Stream[T] = {
+      ...                      |
+    }                          |---> here "=>" is the function operator, not to be confused with "by name" parameter indicator
+    ...
+  }
+
+
+
+
+
+
+---------------
+Lazy Evaluation
+---------------
+- Lazy evaluation: compute only on demand and *only once*
+
+- lazy val myLazyVal = x + 1
+   ^
+   |---- defers the calculation of x + 1 until myLazyVal is needed.
+       - if x is a var, its value could change. When myLazyVal is accessed, the value of the var x at that moment is the one used for the computation
+
+- Examples:
+  - val x = {print("Hi!"); 1}   ----> prints "Hi!" immediately when the val definition is run, and sets x to 1
+          
+  - def y = {print("hi"); 5}    ----> doesn't print anything
+    y                           ----> prints and sets y to 5
+    y                           ----> prints and sets y to 5 again
+    y                           ----> prints and sets y to 5 again
+
+  - lazy val z = {print("hi"); 8}    ----> doesn't print anything 
+    z                                ----> prints and sets z to 8 (z is immutable)
+    z                                ----> doesn't print anything (if z is product of a calculation, the first execution sets the immutable value)
+    z                                ----> doesn't print anything
+
+
+- Scala does strict evaluation by default in formal parametes and val definitions
+- It allows for by-name evaluation: evaluated on-demand each time. Example: def
+- It allows lazy evaluation: evaluated on-demand only once
+
+
+
+
+
+
+----------------
+Infinite Streams
+----------------
+
+- def numberStream(n: Int): Stream[Int] = n #:: numberStream(n + 1)
+                                            ---
+                                             ^
+                                             |
+                                             |--- Stream cons operator
+
+- val myStream = numberStream(4)
+        -----> Stream(4, ?)
+  
+  myStream.tail.head
+        -----> 5
+
+  myStream.tail.tail.head
+        -----> 6  
+
+  myStream
+        -----> Stream(4, 5, 6, ?)
+                               ^
+                               |--- rest of the tail not computed for now
+
+
+  val streamOfMultiplesOf4 = myStream map (_ * 4)
+        -----> Stream(16, ?)
+                          ^
+                          |--- the map will execute on the stream on demand of new elements
+                          
+                                           
+                                           
+
+
+
+

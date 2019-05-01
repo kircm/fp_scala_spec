@@ -1,0 +1,41 @@
+
+==========================
+FP Design in Scala - week3
+==========================
+
+-------------------
+Functions and State
+-------------------
+
+- An object has a state if its behavior is influenced by its history.
+
+- In Scala, mutable state is constructed from variables:  
+  var balance = 0
+
+- Even if an object doesn't have internal vars, could still be stateful, for example, if that object uses another stateful object.
+
+
+
+-------------------
+Identity and Change
+-------------------
+
+- the substitution model ceases to be valid when we add the assignment operation
+
+  - example:
+
+    val x = new BankAccount   |---> different than:   val x = new BankAccount  
+    val y = x                 |                       val y = new BankAccount
+
+- this means the substitution model is not valid for all code that is NOT PURELY FUNCTIONAL (ie: has imperative constructs)
+
+
+
+
+-----
+Loops
+-----
+
+- variables are enough to model all imperative programs
+
+

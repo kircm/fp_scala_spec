@@ -1,0 +1,119 @@
+
+Assignments
+-----------
+
+-----------------
+Sentence Anagrams
+-----------------
+
+- Input:      "I Love You"
+  Output:     "I", "You", "You Olive", "You I Love" ...
+  
+  
+- wordOccurances
+  - Input     "Loom"
+  - Output    List  ('o' -> 2) ('l' -> 1) ('m' -> 1)
+  
+  
+
+- sentenceOccurrences
+  - Input   "Loom", "Mot"
+  - Output  List  ('o' -> 3) ('m' -> 2) ('l' -> 1) ('t' -> 1)
+
+  
+  
+- combinations
+Set(List((a,1), (a,2)), List())
+Set(List((a,1)), List((a,2)), List())
+          
+
+Set(List((a,1)), List((a,2))) did not equal
+Set(List((a,1)), List((a,2)))
+
+
+
+
+
+
+org.scalatest.exceptions.TestFailedException:
+
+Set(
+  List((b,1), (c,1)),
+  List((c,1)),
+  List((a,1)),
+  List((b,1)),
+  List((a,1), (c,1)),
+  List((b,2)),
+  List((a,1), (b,1)),
+  List((b,2), (c,1)),
+  List(),
+  List((a,1), (b,2)))
+  
+Set(
+  List((b,1), (c,1)),
+  List((c,1)),
+  List((a,1)),
+  List((b,1)),
+  List((a,1), (c,1)),
+  List((b,2)),
+  List((a,1), (b,1)),
+  List((b,2), (c,1)),
+  List(),  
+  List((a,1), (b,2)))
+        
+
+  List((a,1), (b,1), (b,2), (c,1))
+         |
+         |
+  
+  List((a,1), (b,1), (c,1)),       
+         
+  List((a,1), (b,2), (c,1)),  
+  
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+val x = List(('a', 1), ('d', 1), ('l', 1), ('r', 1))
+
+val y = List(('r', 1))
+        
+        
+        
+        
+        
+val x = List(('a', 1), ('d', 1), ('l', 1), ('r', 1))
+
+val y = List(('r', 1))
+
+
+val subs = List(('a', 1), ('d', 1), ('l', 1)))
+
+
+
+
+
+
+      //IN:   List((a, 2), (b, 2))
+      
+      val allCharOccurrencesExpanded = expandAllCharOccurrences(occurrences)
+      
+      //OUT:  List(List((a,1)), List((a,2)), List((b,1)), List((b,2)))
+
+
+
+
+
+
+
+
+
+
+
+

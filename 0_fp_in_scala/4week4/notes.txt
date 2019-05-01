@@ -1,0 +1,343 @@
+
+=====================================================
+COURSERA - Functional Programming Principles in Scala
+=====================================================
+
+======
+Week 4
+======
+
+- Many primitive types (numeric, boolean) can be implemented using pure Classes and Objects
+
+- Peano numbers: set of axioms of the Natural numbers
+
+
+
+
+Functions as Objects
+--------------------
+- In Scala function definitions are classes and function values are objects
+
+- The following function
+
+  val f = (x: Int) => x * x
+
+  - can be represented as an object extending the scala trait Function1:
+  
+  val f = new Function1[Int, Int] {
+    def apply(x: Int) = x * x
+  }
+
+  - The scala trait Function1 is defined as
+  
+  package scala      |----------> parametrized generic types
+                     |
+  trait Function1[A, B] {
+    def apply(x: A): B
+  }
+  
+  - In scala there are up to Function22 traits
+  
+- In Scala, objects that have an "apply" method can be treated as functions
+  - Example:
+  
+    - Having:
+        trait List[T] {                   
+          def isEmpty: Boolean         
+          def head: T                
+          def tail: List[T]
+        }
+        
+        class Cons[T](val head: T, val tail: List[T]) extends List[T] {
+          def isEmpty = false
+        }
+        
+        class Nil[T] extends List[T] {
+          def isEmpty = true
+          def head: Nothing = throw Exception
+          def tail: Nothing = throw Exception
+        }
+         
+         
+    - Then we can define object List:
+                
+        object List {           
+          def apply[T](el1: T, el2: T): List[T] = new Cons(el1, new Cons(el2, new Nil)
+          
+          // calling  List(1, 2)   is expanded into    List.apply(1, 2)     which constructs the list through instances of Cons/Nil
+          
+          def apply[T]() = new Nil
+        }
+         
+        def myList = List("apple", "pear")
+                       |
+                       |----> internally the method "apply" on List object is called
+
+
+
+
+
+
+
+Subtyping and Generics
+----------------------
+- Reminder from previous lessons:
+                                      IntSet
+                                        ^
+                                        |
+                                    ----------
+                                    |        |
+                                NonEmpty   Empty    ---> subtypes of IntSet
+
+
+- Two forms of polymorphism:
+  - Subtyping
+  - Generics
+
+- Interactions between the two:
+  - Bounds
+    - subjecting type parameters to subtype constraints
+    - Example:
+      - assertAllPos function defines a generic (parametrized) type: S that must be subtype of IntSet.
+      - it accepts one parameter of that generic type S and it returns a value of type S
+    
+        def assertAllPos[S <: IntSet](par1: S): S = ....
+                           |
+                           |---> declaring type S and setting its upper bound to be a subtype of IntSet
+      
+      S <: T   means S is a subtype of T
+      S >: T   means S is a supertype of T    
+    
+      - Liskov substitution principle: If A <: B then everything we can do with a value of type B we should be able to do with another value of type A
+      
+      - Example: Arrays in scala
+      
+        val a: Array[NonEmpty] = Array(new NonEmpty(1, Empty, Empty))
+        val b: Array[IntSet] = a 
+                       |
+                       |---> Error at compile time. An Array of NonEmpty (subtype) can't be assigned to a value defined as Array of IntSet (supertype)
+                       |
+                       |---> In Scala arrays are not covariant (but they are in Java)
+    
+    
+    
+  - Variance
+    - how parametrized types behave under sub typing    
+    - Some types should be covariant and some should not    
+    - Mutables types should NOT be covariant
+    - Immutable types CAN be covariant under certain circumstances:
+    
+    - If C[T] is a parametrized type and types A <: B then
+      - if C[A] <: C[B]  then we call C covariant
+      - if C[B] >: C[A]  then we call C contravariant
+      - otherwise C is nonvariant
+    
+    - In Scala we can declare C specifying variance:
+      class C[+T]  { ... }   C is covariant
+    
+      class C[-T]  { ... }   C is contravariant
+    
+      class C[T]  { ... }    C is nonvariant
+
+
+
+
+
+
+
+
+
+Decomposition
+-------------
+- Decomposition: find a general way to access objects in an extensable class hierarchy
+
+- Use of type checking and type assignment is discouraged 
+    Scala                       Java
+    x.isInstanceOf[T]           x isinstanceof T
+    x.asInstanceOf[T]           (T) x
+   
+  
+- We can extract common functonality to a base trait: OO Decomposition
+  
+        trait Expr {
+          def eval: Int
+        }
+
+    And two classes
+        class Number(n:Int) extends Expr {
+          def eval: Int = n
+        }
+        
+        class Sum(e1: Expr, e2 Expr) {
+          def eval: e1.eval + e2.eval
+        }
+
+- But OO decomposition has limitations. How to encapsulate logic that requires a non-local knowledge of the tree?
+    
+    
+    
+    
+    
+    
+    
+    
+Pattern Matching
+----------------
+- Scala offers case classes
+
+- Example:
+
+  trait Expr
+  
+  case class Number(n: Int) extends Expr
+  
+  case class Sum(e1: Expr, e2: Expr) extends Expr
+    |
+    |
+    |--> The "case" keyword will make Scala create companion objects with apply methods:
+    |
+                         object Number {                                       |       
+                           def apply(n: Int) = new Number(n)                   |-----                           
+                         }                                                     |     |
+                                                                                     |-->  Implicit objects
+                         object Sum {                                          |     |
+                           def apply(e1: Expr, e2: Expr) = new Sum(e1, e2)     |-----                                         
+                         }                                                     | 
+                                                                       
+                                                                       
+  - So now we can call   Number(1)   etc
+  
+  - We can also call the method "match"
+    - Example
+       
+      - Having:
+          def myExpr: Expr = Sum(Number(1), Number(2))
+         
+          def eval(e) = e match {
+            case Number(x) => x
+            
+            case Sum(x, y) => eval(x) + eval(y)
+          }
+        
+      - Then:
+          
+          eval(myExpr)
+           |
+           |---> would do pattern matching recursively by calling eval
+                 
+                 eval(Sum(Number(1), Number(2)))
+                   |
+                   |
+                   v
+                 eval(Sum(1 + Number(2))
+                   |
+                   |
+                   v
+                 eval(Sum(1 + 2))
+                   |
+                   |
+                   v
+                 1 + 2
+                   |
+                   |
+                   v
+                   3
+      
+                         
+    - the eval function used above can be defined as a method in the base trait:
+      
+      trait Expr {
+        def eval: Int = this match {
+          case Number(n) => n
+          
+          case Sum(e1, e2) => e1.eval + e2.eval
+        }
+      }
+       
+      - So we can use the variable defined earlier myExpr:
+        
+        myExpr.eval
+
+
+
+
+
+
+
+
+
+Lists
+-----
+- Scala defines a standard implementation of List
+
+- Differences between Lists and Arrays:
+  - Lists are immutable (elements cannot be changed)
+  - Lists are recursive, arrays are flat
+
+- Example:
+ 
+  val fruits: List[String] = ("apple", "orange", "pear")
+
+  val matrix: List[List[Int]] = List(List(1, 0, 0), List(0, 1, 0), List(0, 0, 1))
+
+
+
+- Using "cons" operator  ::
+
+  val fruits = "apple" :: ("orange" :: ("pear" :: Nil))
+                          |            |           |
+                          |            |           |--> tail of (pear, tail)
+                          |            |
+                          |            |--> tail of (orange, tail)
+                          |                                      
+                          |--> tail of (apple, tail)
+
+  val empty = Nil
+
+  
+  - Parenthesis can be omitted when association to the right works for our purpose:
+    
+    val fruits = "apple" :: "orange" :: "pear" :: Nil
+
+
+- Scala defines the methods:
+  - head
+  - tail
+  - isEmpty
+  
+- Example of using pattern matching with Lists:
+
+  def iSort(myList: List[int]): List[Int] = myList match {
+    case List() => List()    --------> empty list case
+    case y :: tl => insert(y, iSort(tl))
+  }
+  
+  def insert(x: Int, xs: List[Int]): List[Int] = xs match {
+    case List() => List(x)    
+    case y :: ys => if (x <= y) x :: xs else y :: insert(x, ys)
+  }
+  
+    
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

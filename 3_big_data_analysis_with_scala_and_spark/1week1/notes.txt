@@ -1,0 +1,110 @@
+
+===============================================
+Big Data Analysis with Scala and Spark - week 1
+===============================================
+
+- RDDs are Spark's distributed collections abstraction
+
+- High-order functions: functions that take other functions as arguments.
+  - Typical High-order functions that we use with immutable sequential/parallel Scala collections are: 
+    - map
+    - flatMap
+    - filter
+    - reduce
+    - fold
+    - aggregate
+
+- RDDs also implement those High-order functions
+
+- Using RDDs in Spark feels a lot like normal Scala sequential/parallel collections with the added knowledge that data is distributed across several machines.
+
+- parallelize method: converts a Scala collection into an RDD
+
+- SparkSession: handle to Spark cluster
+
+- Transformations: 
+  - From an RDD it returns another RDD
+  - They are LAZY
+
+- Actions: 
+  - From an RDD it computes a result and either returns it or saves it on an external storage system.
+  - They are EAGER
+
+- Common Transformations:
+  - map
+  - flatMap
+  - filter
+  - distinct
+- Transformations on two RDDs:
+  - union
+  - intersection
+  - substract
+  - cartesian
+
+- Common Actions:
+  - collect
+  - count
+  - take
+  - reduce
+  - forEach
+
+- Other Actions (unrelated to regular Scala collections):
+  - takeSample
+  - takeOrdered
+  - saveAsTextFile
+  - saveAsSequenceFile
+
+
+
+-------------------
+Evaluation in Spark
+-------------------
+- By default RDDs are re-computed each time you apply an action on them.
+  - For example if we apply a transformation and we perform two actions on the result, the transformation is done twice.
+
+- This can be expendive in time if you need to use a dataset more than once.
+
+- Spark allows you to control what data is cached in memory
+  - persist() -> persistance level can be customized
+  - cache()   -> shorthand for default storage level: in-memory as regular Java objects 
+
+- Example - Logistic Regression iterations
+
+  val points = sc.textFile(...).map(parsePoint).persist()
+                                                     |  
+  var w = Vector.zeros(d)                            |--> the parsing of Points is done once. The subsequent map calls for each iteration reuse this result.     
+
+  for (i <- 1 to numIterations) {
+    val gradient = points.map{ p => (1/ (1 + exp(-p.y * w.dot(p.x))) - 1) * p.y * p.y}
+                   .reduce(_ + _)
+
+    w -= alpha * gradient
+  }
+
+- If persistence of data is defined as MEMORY_AND_DISK, when data doesn't fit into memory it will spill to disk.
+
+- Laziness is very important to give Spark the opportunity to apply optimizations on transformations in order to reduce 
+  the number of passes through data or even limiting the number of data elements altogether (for example when calling action take(10))
+
+
+----------------
+Cluster Topology
+----------------
+- Cluster is usually composed of 
+  - 1 Master (Driver Program)
+  - Many workers (Worker Nodes containing Executor processes)
+
+- Driver Program is the node that creates the Spark Context (or Session)
+
+- The Cluster Manager is a component in b/ween Driver and Workers that assigns resources and schedules tasks. Example: YARN, Mesos
+
+
+
+
+
+
+
+
+
+  
+

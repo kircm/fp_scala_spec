@@ -1,0 +1,159 @@
+
+=====================
+Barnes-Hut Simulation
+=====================
+
+- Quadtree Example:                                    
+                              --------------------                                                                            
+                              |  ObjA  |         |                                                                            
+                              |        |         |                                                                            
+                              |        |         |                                                                            
+                              |------------------|                                                                            
+                              |        |ObjB|    |                                                                                                                                       
+                              |        |---------|                                                                            
+                              |        |    |ObjC|                                                                            
+                              --------------------                                                                            
+                                                
+                                         ||       
+                                         ||
+                                         \/       
+                                                     
+                                     ----------                                                                                  
+                                     |ForkNode|
+                                     ----------
+                                     NW NE SW SE   
+                                     /   |  \    \                                            
+                                    /    |   \    \ 
+                            ---------- empty empty  ------------- 
+                            |Leaf Nod|              |  ForkNode |
+                            |  ObjA  |              -------------
+                            ----------                NW NE SW SE     
+                                                      |   |  \   \   
+                                                      | empty \   \    
+                                               ----------   empty  ----------                 
+                                               |Leaf Nod|          |Leaf Nod|            
+                                               |  ObjB  |          |  ObjC  |             
+                                               ----------          ----------
+
+-----------
+Test Case 1   
+-----------
+                                                                                                                                  
+
+                                 17.5     22.5                                                                      
+                                  |        |                                        mass   x    y                   
+                              --------------------                val b = new Body(123f, 18f, 26f, 0f, 0f)                                                          
+                              |     B  |         |                                                                  
+                         27.5-|   C1   |   C2    |-27.5                        centerX centerY  size   bodies                                       
+                              |        |         |                val nw = Leaf(17.5f,   27.5f,   5f,    Seq(b))                                                            
+                              |------------------|                                |                                 
+                              |        |         |                         center C1: (17,5  27.5)                                                                                        
+                         32.5-|   C3   |   C4    |-32.5                                                             
+                              |        |         |                              centerX   centerY  size                                                           
+                              --------------------                val ne = Empty(22.5f,    27.5f,    5f)                                                          
+                                                                                  |                                 
+                                         ||                                center C2: (22,5  27.5)                  
+                                         ||                                                                                                                                                             
+                                         \/                       val sw = Empty(17.5f,    32.5f,    5f)                                                                                                                                             
+                                                                                  |                                                                                                 
+                                     ----------                            center C3: (17,5  32.5)                                                    
+                                     |  Fork  |                                                                     
+                                     ----------                   val se = Empty(22.5f,    32.5f,    5f)                                             
+                                     NW NE SW SE                                  |                                 
+                                     /   |  \    \                         center C4: (22,5  32.5)                                                                                                                            
+                                    /    |   \    \ 
+                            ---------- empty empty empty
+                            |  Leaf  |             
+                            |   B    |             
+                            ----------             
+                                                   
+                                                  
+
+-----------
+Test Case 2 : Having a Leaf with a body b, insert another body b2. It should create a Fork with 2 leafs containing   
+-----------   one body each. IT IS ASSUMED THE NEW BODY FALLS INTO THE LEAF'S AREA
+                                                                                                                                 
+                                                                                                                                  
+       Leaf size 10                      Fork size 10                                                                                      
+     (0, 0)           (10, 0)          (0, 0)             (10, 0)                             mass   x    y               
+      --------------------               -----|--------|-----                val b = new Body(10f,   10f, 10f, 0f, 0f)      
+      |                  |               |        |         |                                                                  
+      |                  |              -|   CF1  |   CF2   |-                            centerX   centerY  size   bodies   
+      |                  | insert b2     |        |         |                val leaf = Leaf(5f,      45,     10f,  Seq(b))
+      |      CL(5, 5)    |   =====>      |------------------|               
+      |                  |  (create      |        |         |                         center CL: (5, 5)                  
+      |                  |  empty        |   CF3  |   CF4   |-                                                                  
+      |                  |  fork 1st)    |        |         |                         
+      -------------------X               -----|--------|-----                  
+                          b(10, 10)                                \\   1- create empty fork                           
+              ||                                  ||                \\  2- insert b         
+              ||                                  ||                 \\ 3- insert b2              
+              \/                                  \/                  \\                      mass    x     y
+                                                                       ===>  val b2 = new Body(10f,   8f,   8f, 0f, 0f)        
+          ----------                          ----------                       
+          |  Leaf  |                          |  Fork  |                     val fork = Fork(empty CF1,        
+          |Seq(b)  |                          ----------                                     empty CF2,                  
+          ----------                          NW NE SW SE                                    empty CF3,                   
+                                              /   |  \    \                                  empty CF4)          
+                                             /    |   \    \                          center CF1: (2.5, 2.5) 
+                                         empty empty empty empty                      center CF2: (7.5, 2.5) 
+                                         CF1    CF2   CF3    CF4                      center CF3: (2.5, 7.5) 
+                                                                                      center CF4: (7.5, 7.5) 
+                                                                                       
+                                                                             fork.insert(b).insert(b2)
+                                                                                 |         |
+                                                                                 |         |--> after re-generating new Forks for
+                                                                                 |              b recursively, same thing done 
+                                                                                 |              for b2
+                                                                                 |-> this will recursively call      
+                                                                                     insert on the fork's quad
+                                                                                     and create other forks
+                                                                                     until we reach Leaf
+
+
+
+
+
+-----------
+Test Case 3 : Sector Matrix
+-----------
+
+                   
+(x, y) within space                                                                                                                               
+       boundaries:                                               boundaries size: 30, sector precision: 3  
+                  (2, 2)    x: 12     x: 22      (32, 2)         
+                     ------------------------------              sectorSize = boundaries.size / sectorPrecision = 10
+                    | (x, y) |         |         |               
+                    |in matrx|  (1,0)  |  (2, 0) |                                       mass  x    y
+                    | (0, 0) |         |         |               val b1: Body = new Body(10f, 10f, 10f, 0f, 0f)  
+                    |----------------------------| y: 12                                       |    |           
+                    |        |         |         |                                             |----|           
+                    | (0, 1) |  (1, 1) |  (2, 1) |                                               |        
+                    |        |         |         |                                               |--> sector (0, 0)
+                    |----------------------------| y: 22                      
+                    |        |         |         |                                      mass  x    y             
+                    | (0, 2) |  (1, 2) |  (2, 2) |               val b2: Body = new Body(10f, 20f, 30f, 0f, 0f) 
+                    |        |         |         |                                             |    |           
+                    ------------------------------                                             |----|           
+                  (2, 32)                        (32, 32)                                        |                  
+                                                                                                 |--> sector (1, 2)   
+                              
+                              
+                              
+                              
+                              
+                              
+                              
+                              
+
+
+
+
+
+
+
+
+
+
+
+

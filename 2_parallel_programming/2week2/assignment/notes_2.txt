@@ -1,0 +1,42 @@
+
+
+traverse )))))(   (1,5,5,0)
+traverse ((((()   (5,1,0,4)
+traverse )))(((   (3,3,3,0)
+traverse ))))((   (2,4,4,0)
+traverse (((())   (4,2,0,2)
+traverse )))))(   (1,5,5,0)
+traverse ((()))   (3,3,0,0)
+traverse ((((()   (5,1,0,4)
+traverse ))(((((   (5,2,2,3)
+traverse (((())   (4,2,0,2)
+traverse ((()))   (3,3,0,0)
+traverse (()))))   (2,5,3,0)
+traverse )))(((   (3,3,3,0)
+traverse (()))))   (2,5,3,0)
+traverse ))(((((   (5,2,2,3)
+traverse ))))((   (2,4,4,0)
+
+(openParsTotal, closedParsTotal, negativeParsTotal, positiveParsTotal)  (7,5,0,0)
+(openParsTotal, closedParsTotal, negativeParsTotal, positiveParsTotal)  (5,7,5,2)
+(openParsTotal, closedParsTotal, negativeParsTotal, positiveParsTotal)  (5,8,6,0)
+(openParsTotal, closedParsTotal, negativeParsTotal, positiveParsTotal)  (5,7,5,2)
+(openParsTotal, closedParsTotal, negativeParsTotal, positiveParsTotal)  (8,5,2,3)
+(openParsTotal, closedParsTotal, negativeParsTotal, positiveParsTotal)  (8,5,2,3)
+(openParsTotal, closedParsTotal, negativeParsTotal, positiveParsTotal)  (5,8,6,0)
+(openParsTotal, closedParsTotal, negativeParsTotal, positiveParsTotal)  (7,5,0,0)
+
+(openParsTotal, closedParsTotal, negativeParsTotal, positiveParsTotal)  (15,10,2,3)
+(openParsTotal, closedParsTotal, negativeParsTotal, positiveParsTotal)  (10,15,9,0)
+
+(openParsTotal, closedParsTotal, negativeParsTotal, positiveParsTotal)  (10,15,9,0)
+(openParsTotal, closedParsTotal, negativeParsTotal, positiveParsTotal)  (15,10,2,3)
+
+(openParsTotal, closedParsTotal, negativeParsTotal, positiveParsTotal)  (25,25,8,0)
+
+(openParsTotal, closedParsTotal, negativeParsTotal, positiveParsTotal)  (25,25,8,0)
+
+(openParsTotal, closedParsTotal, negativeParsTotal, positiveParsTotal)  (50,50,16,0)
+
+
+(50,50,16,0)

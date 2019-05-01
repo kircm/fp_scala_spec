@@ -1,0 +1,243 @@
+
+===============================================
+Big Data Analysis with Scala and Spark - week 3
+===============================================
+
+---------
+Shuffling
+---------
+- it happens behind the scenes, shuffling is not called explicitly by the user
+
+- it happens when nodes need to work on data that's in other nodes. 
+  - Example: groupByKey forces the nodes to collect values for the keys they manage
+
+- shuffles have an impact on performance (due to latency)
+
+- The less shuffling the better, but shuffling IS necessary
+
+- To have a better performance one can:
+  - Use reduceByKey instead of two steps: groupByKey + reduce 
+
+- Example:
+ 
+  - Having
+    case class CFFPurchase(customerid: Int, destination: String, price: Double)
+
+  - And purchasesRdd: RDD[CFFPurchaseJ]
+
+  - If we want to calculate how many trips and how much money was spent by each individual customer:
+
+    val purchasesPerMonth = purchasesRdd.map(p => (p.customerId, (1, p.price)))
+    |->  .reduceByKey((v1, v2) => (v1._1 + v2._1, v1._2 + v2._2))
+    |    .collect()
+    |
+    |
+    reduceByKey happens on each node separately before doing shuffle and on the receiving nodes after the shuffling, which reduces network traffic  
+    (check slides)
+
+- But how does Spark decides which key-value pairs sends to which node in order for those pairs to be processed? 
+  (Reminder: key-value pairs that have the same key need to go to one single node in order to be processed)
+  |
+  |--> Partitioning
+
+
+
+
+------------
+Partitioning
+------------
+- By default Spark uses HASH PARTITIONING
+
+- Partitions
+  - data within an RDD is split into several partitions
+  - data in the same partition are guaranteed to be on the same node (machine in the cluster)
+  - each node in the cluster contains one or more partitions
+  - the number or partitons is configurable, by default it equals the number of cores on all executor nodes
+
+- IMPORTANT: Customizing a partition is only possible on Pair RDDs
+
+- Two kinds of partitioning available in Spark
+  - Hash partitioning : attempts to spread data evenly across partitions based on the key
+    - Having a pair RDD with (k, v), the partition number to send that pair to would be:   p = k.hashCode() % numPartitions
+  - Range partitioning
+    - If the keys have ordering defined, range partitioning may produce a more balanced distribution of work across nodes
+
+- Invoking partitionBy() on a pair RDD creates an RDD with a specified partitioner:
+
+    val pairs = purchasesRdd.map(p => (p.customerld, p.price))
+    
+    val tunedPartitioner = new RangePartitioner(8, pairs)
+    
+    val partitioned = pairs.partitionBy(tunedPartitioner).persist()
+                                                             |
+                                                             |--> Important, as it keeps the data in their partitions 
+                                                                  for further transformations on the RDD. Otherwise 
+                                                                  shuffling keeps happening again and again.
+
+- Operations on Pair RDDs produce RDDs that inherit the parent partitioner.
+
+- Some operations on RDDs automatically produce an RDD with a known partitioner, due to the nature of the operation.
+- Examples:
+  - sortByKey --> RangePartitioner is used
+  - groupByKey -> HashPartitioner is used
+
+- Most of operations hold on to the partitioner that was used in the previous RDD
+- Some operations DO NOT hold on the partition and therefore THEY LOSE IT
+- When an RDD loses a partitioner data will be shuffled again
+
+- For example: map, flatMap DO NOT keep the partitioner, because they allow for modifications on the Pair RDD's keys
+- However: mapValues, flatMapValues only operate on values so they KEEP the RDD's partitioner.
+
+
+
+---------------
+Re-Partitioning
+---------------
+- Knowing the characteristics of the data being processed, we can optimize for data locality
+
+
+
+----------------------------
+Optimizing with Partitioners
+----------------------------
+- Example:
+
+  val pairs = purchasesRdd.map(p = > (p.customerld, p.price))
+
+  val tunedPartitioner = new RangePartitioner(8, pairs)
+                                   |
+                                   |--> we create a range partitioner with 8 partitions 
+                                        for the pairs of (customerId, price)
+
+  val partitioned = pairs.partitionBy(tunedPartitioner).persist()
+                                        |
+                                        |--> pass in the tuned partitioner when calling partitionBy and persist result
+  
+  val purchasesPerCust = partitioned.map( p => (p._1, (1, p._2)))
+                                                       |
+                                                       |--> the 1 is used for counting purchases 
+
+  val purchasesPerMonth = purchasesPerCust
+      .reduceByKey((v1, v2) = > (v1._1 + v2._1, v1._2 + v2._2)).collect()
+                 |
+                 |--> reduce by key will group all pairs with same customerId and apply reduction function 
+                      (add up number of purchases and total price for the customer's purchases)
+      
+
+- Another example: Joining a bigger RDD with a smaller RDD
+
+  - Having the big dataset of user data:
+
+    val userData = sc.sequenceFile[UserID, Userlnfo]("hdfs:// ... ")
+                     .persist()
+
+  - An easy way to reduce potential shuffling is to partition data explicitly at the begining:
+  
+    val userData = sc.sequenceFile[UserID, Userlnfo]("hdfs:// ... ")
+                     .partitionBy(new HashPartitioner(100))
+                     .persist()           |
+                                          |--> Create 100 partitions
+  
+  - This way the user data will stay in their respective nodes (a partition is guaranteed to be hosted in a single node)
+    and the JOINed smaller RDD will be shuffled accordingly
+
+
+- A shuffle CAN occur when the resulting RDD depends on other elements from the same RDD or on another RDD
+  - Operations that may cause shuffling:
+    - cogroup
+    - groupWith
+    - join
+    - leftOuterJoin
+    - rightOuterJoin
+    - groupByKey
+    - reduceByKey
+    - combineByKey
+    - distinct
+    - intersection
+    - repartition
+    - coalesce
+
+- Useful Spark tricks to find out if shuffling is about to occur:
+  - the return type of certain transformations: ShuffleRDD[366]
+
+  - function toDebugString:
+
+    partitioned.reduceByKey(...).toDebugString
+                                     |
+                                     |--> the resulting string will have debugging info around partitioning/shuffling
+
+
+
+
+---------------------------
+Wide vs Narrow Dependencies
+---------------------------
+- Computations on RDDs are represented as a lineage graph (a DAG)
+
+- Example:
+             input file
+                 |
+                 V
+                RDD 
+                 | map, filter
+                 V
+            filtered RDD
+             /     \
+      count /       \  reduce
+            |        |
+            V        V
+          count   reduced
+
+- The graph can be seen as a dependency graph where transformations link one RDD with another
+- Actually RDDs are an abstraction of a set of partitions spread across nodes so
+  dependencies are between PARTITIONS
+
+       RDD1                                   RDD2
+    partition1_1  -- map transformation --> partition2_1
+    partition1_2  -- map transformation --> partition2_2
+    partition1_3  -- map transformation --> partition2_3
+
+
+- Transformations cause shuffles and we can differentiate two types of dependencies:
+  - Narrow Dependencies
+    - Each partition of the parent RDD is used by at most one partition on the child RDD
+    - Examples: 
+      - map
+      - mapValues
+      - flatMap
+      - filter
+      - union      
+      - joins (with co-partitioned inputs)
+      - mapPartitions
+      - mapPartitionsWithIndex
+
+  - Wide Dependencies
+    - A partition on the parent RDD may be dependended on by MULTIPLE child partitions
+    - Examples:
+      - groupByKey
+      - joins (with inputs not partitioned)
+      - cogroup
+      - groupWith
+      - reduceByKey
+      - combineByKey
+      - distinct
+      - intersection
+      - repartition
+      - coalesce
+
+- The resulting RDD of a groupBy or a transformation that requires shuffling is already co-partitioned
+  with the next RDD if we persist the result of the transformation
+
+- Spark offers the dependencies() method on RDDs
+
+- Spark jobs are broken into stages by the scheduler
+
+- Lineage graphs are the key to fault tolerance in Spark
+
+- Functional Programming aspects enable fault tolerance (without writing data to disk) in Spark
+  - RDDs are immutable
+  - High-order functions (map, flatMap, filter) do functional transformations on immutable data
+  - A function for computing the dataset based on its parent RDDs is also part of an RDD's representation
+- So computations can be re-played at any given point in time
+
+

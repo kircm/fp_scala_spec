@@ -1,0 +1,212 @@
+
+==========================
+FP Design in Scala - week4
+==========================
+
+------------------------------------------------
+Imperative Event Handling - The Observer Pattern
+------------------------------------------------
+- AKA: Publish / Subscribe
+
+- In Scala
+
+  trait Publisher {
+    private var subscribers: Set[Subscriber] = Set()
+    
+    def subscribe(subscriber: Subscriber): Unit = subscribers += subscriber
+  
+    def unsubscribe(subscriber: Subscriber): Unit = subscribers -= subscriber
+  
+    def publish(): Unit = subscribers.foreach(_.handler(this))
+  }
+
+  trait Subscriber {
+    def handler(pub: Publisher)
+  }
+
+
+
+
+-------------------------------
+Functional Reactive Programming
+-------------------------------
+- Functional view: aggregate an event sequence into a signal
+
+- Represented as function:  Time -> Value
+
+- Instead of mutating state we define new signals in terms of existing ones.
+
+- Event streaming dataflow programming systems: React4J, Rx, Elm
+
+- Two fundamental operations on Signals:
+  - value of signal at the current time:  () operation.
+    - example: mousePosition()
+
+  - define signals in terms of other signals:   Signal constructor
+    - example: 
+      def inReactangle(LL: Position, UR: Position): Signal[Boolean] =
+        Signal {
+          val pos = mousePosition()   ----------> external signal
+          LL <= pos && pos <= UR
+        } 
+      }
+
+
+- We can define signals that vary in time using a Var (extension of Signal)
+  - Var provides update() method. 
+    - sig.update(5) can be abbreviated: sig(5)
+  - If we map signals they keep a relation maintained automatically
+  - This means that if one signal depends on another and the first is changed, the second gets updated automatically
+    - Example:
+      a() = 2
+      b() = 2 * a()
+
+      when updating a:
+      a() = 3
+            |
+            |--> b is updated to 6 automatically
+
+
+
+- BankAccount example
+
+  class BankAccount {
+    val balance = Var(0)
+                   |
+                   |---> Signal that changes over time
+
+    def deposit(amount: Int): Unit = 
+      if (amount > 0) {
+        val b = balance()
+              |
+              |--> retrieving the value of the signal
+        
+        balance() = b + amount
+                  |
+                  |--> changing the value of the signal. This would make no sense:   balance() = balance() + amount  
+    }
+
+    def withdraw(amount: Int): Unit = if (0 < amount && amount <= balance()) {
+      val b = balance()
+      balance() = b - amount
+                |
+                |--> changing the value of the signal       
+
+    } else throw new Error("Insufficient funds")
+  }
+
+
+
+  object accounts {
+    def consolidated(accts: List[BankAccount]): Signal[Int] =
+      Signal(accts.map(_.balance()).sum)
+  }
+
+
+  - Testing the signals
+    val a = new BankAccount()
+    val b = new BankAccount()
+    val c = consolidated(List(a, b))
+    
+    c()   ----------> Result: 0
+    a deposit 20
+    c()   ----------> Result: 20
+    c deposit 30
+    c()   ----------> Result: 50
+
+
+
+
+
+
+
+- Thread-local state means that each thread accesses a separate copy of a variable.
+  - In Java:
+    java.lang.ThreadLocal<T>
+
+  - In Scala: 
+    scala.util.DynamicVariable[T]
+
+  - In the JVM it's implemented with a global HashTable, it may deal to performance problems
+
+
+
+
+
+--------------------
+Latency as an Effect
+--------------------
+
+- The same way we can encapsulate computational operations that may fail using the Monad Try[T]
+  we can encapsulate operations that will happen in the future with Monad Future[T]
+
+- Future[T]
+  is a Monad that encpasulates execution time AND potential failures
+
+  trait Future[T] {
+    def onComplete(callback: Try[T] => Unit)(implicit excutor: ExecutionContext): Unit
+    ....                                     ----------------------------------
+  }                                                        |
+                                                           |
+                                                           |--> implicit parameter (ignore for now)
+
+
+  - callback needs to use pattern matching:
+
+    ts match {
+      case Success(t) => onNext(t)
+      case Failure(e) => onError(e)
+    }
+
+  - alternative design: 
+
+    trait Future[T] {
+      def onComplete(callback: Observer[T]): Unit
+      ...                         |
+    }                             |
+                                  |--> trait Observer[T] {
+                                         def onNext(value: T): Unit                                         
+                                         
+                                         def onError(error: Throwable): Unit
+                                       }
+
+  - to create Futures we use companion object:
+
+    object Future {
+      def apply(body: => T)(implicit context: ExecutionContext): Future[T]
+    }                       ----------------------------------
+                                       |
+                                       |
+                                       |--> implicit parameter (ignore for now)
+
+
+
+  - Because Future is a Monad and implements we can use flatMap to chain calls that return other Futures, for example:
+
+      val socket = Socket()
+
+      val packet: Future[Array[Byte]] = socket.readFromMemory() -----|
+                                                                     |--> both readFromMemory and sendtoEurope return Future[Array[Byte]] 
+      val confirmation: Future[Array[Byte]] =                        |  
+        packet.flatMap(p => socket.sendtoEurope(p))             -----|
+               ------------------------------------
+                  |
+                  |
+                  |--> instead of having to use boilerplate code with pattern matching:     
+                         packet.onComplete {
+                   
+                           case Success(p) => val confirmation: Future[Array[Byte]] = socket.sendToEurope(p)
+                   
+                           case Failure(t) => print("FAILURE")
+                   
+                         }
+
+
+
+
+
+
+
+
+
+

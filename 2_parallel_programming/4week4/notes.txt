@@ -1,0 +1,210 @@
+
+=============================
+Parallel Programming - week 4
+=============================
+
+----------------------
+Implementing Combiners
+----------------------
+- Combiners allow the the combination of different collections IN PARAL.LEL
+
+- They are a trait that extends Builder:
+                                                |-- type of the collection (Set, Map, Seq, ...)
+                                                |
+                                                v
+    trait Combiner[T, Repr] extends Builder[T, Repr] {
+      def combine(that: Combiner[T, Repr]): Combiner[T, Repr]      
+    }               |
+                    |
+                    |--> combiner combines _this_ and _that_ and returns a collection of the same type 
+                         containing elements of the same type (all elements of _this_ and _that_)
+
+
+- Depending on the data structure implementing the collection, combine() means different things:
+  - Set or Map --> union
+  - Seq        --> concatenation
+
+- combine() should be efficient: O(log(n) + log(m))  in order to gain speed-up in parallel computations. 
+  (the reason: filter() sequential operation has linear complexity: O(n) and combine filters elements to distribute to processors)
+
+
+
+------------------------------------
+Data structures and their efficiency
+------------------------------------
+- Arrays : contiguous blocks of memory -> fast access though index
+  - Concatenating arrays (combine()) cannot be efficient 
+    due to the need to copy all elements in a memory location contiguously
+
+- Set and Map implementations:
+  - Hash Tables : contiguous block of memory partially populated with elements -> efficient lookup, insertion, deletion
+
+                          0   1   2   3   4   5
+                        ---------------------------
+                        |   | x |   | y | z |   | ....      hash(x) = 1
+                        ---------------------------                   |
+                              ^                                       |
+                              |                                       |
+                              |----------------------------------------
+     - Lookup of an element (includes insertion, deletion):  O(1) -> constant time
+
+  - Balanced Trees : the lentgh of the longest path to a leaf is < 2 * shortest path to a leaf
+    - Having N elements, the order of complexity to find a node is O(log(N))   
+
+  - Linked List: linear arrangement of nodes, non-contiguous in memory
+    - Finding an element: O(n)
+
+  - Unfortunately all of these data structures DO NOT implement union operation (combine) efficiently
+
+
+- Sequence (scala Seq) implementations:
+  - Mutable Linked Lists : O(1) preped/append   O(n) insertion
+    - EFFICIENT CONCATENATION (combine())
+  
+  - Functional (cons) Lists : O(1) prepend   O(n) everything else
+    - Concatenation (combine()): O(n)
+
+  - Array Lists : like arrays, but with pre-allocated memory and extensible when adding new elements (needs to copy array in those cases)
+    - O(1) append  O(1) random access    O(n) everything else
+    
+                            0   1   2   3   4   5
+                          -------------------------
+                          | a | x | b | y | z | l |    
+                          -------------------------         
+                                       |
+                                       | insertion of M
+                                       | when array full, allocate new array and copy elements:
+                                       |
+                                       v
+                           100 101 102 103 104 105 106 107 108 ...
+                          -------------------------------------------------
+                          | a | x | b | y | z | l | M |   |   |   |   |   |
+                          -------------------------------------------------        
+    - Concatenation (combine()): O(n)
+
+
+
+
+-------------------------------
+Parallel Two-phase construction
+-------------------------------
+- Most data structures can be constructed in parallel using two-phase construction
+
+- If the combiner and the resulting collection use the same internal data structure (in their internal implementations)
+  an intermediate data structure can be used 
+
+- That intermediate data structure:
+  - has an efficient combine method: O(log(n) + log(m))
+  - has an efficient += method  (concatenation or addition)
+  - can be converted to the resulting data structure in O(n/P) time  (n: elements, p: processors)
+
+
+
+------------------------
+Conc-tree Data Structure
+------------------------
+- Parallel counterpart of the cons List
+
+- Recall:
+  
+  trait List[T] {         |      implementation classes: 
+    def head: T           |-->     - cons implementation aka "::"  -->   case class ::[T](head: T, tail: List[T]) extends List[T] 
+                          |
+    def tail: List[T]     |        - empty list:                   -->   case object Nil extends List[Nothing] { 
+  }                                                                        def head = sys.error("empty list")
+                                                                           def tail = sys.error("empty list")
+                                                                         }                                                            
+                                                                         
+  - we define operations on cons lists in terms of recursion, matching on the case classes above
+
+- This type of Lists are used for sequential operations
+
+- For parallel ones we an use TREE 
+
+    trait Tree[T] 
+  
+    case class Node[T](left: Tree[T], right: Tree[T]) extends Tree[T]
+  
+    case class Leaf[T](elem: T) extends Tree[T]
+  
+    case object Empty extends Tree[Nothing]
+  
+- But we need to use BALANCED TREE so that parallelism remains efficient
+  
+  - type Conc:
+
+      trait Conc[T] {        |     case object Empty extends Conc[Nothing] { def level = 0; def size = 0; }             
+        def level: Int       |-->  
+        def size: Int        |     class Single[T](val x: T) extends Conc[T] { def level = 0; size = 1; }
+        def left: Conc[T]    |
+        def right: Conc[T]   |     case class <>[T](left: Conc[T], right: Conc[T]) extends Conc[T] {
+      }                              val level = 1 + math.max(left.level, right.level)
+                                     val size = left.size + right.size                   
+                                   }                     
+                                                        
+  - Constraints to make it balanced:
+    - A <> node can never contain Empty as a subtree
+    - The level difference between the left and the right subtree of a <> node is always 1 or less
+
+  - concat method to concatenate two trees:
+
+    def <>(that: Conc[T]): Conc[T] = {    |--> example:
+      ...                                 |
+    }                                     |    myConc1 <> myCon2 ----> new Conc tree (balanced) containing all 
+                                                       |               elements of myConc1 and myConc2.
+                                                       |               method takes care of rebalancing
+                                                       |--> different from
+                                                              new <>(myConc1, myConc2)
+                                                            which just links two trees together (without re-balancing)
+
+
+----------------------------------------
+Amortized Constant-time Append Operation
+----------------------------------------
+
+- We can achieve O(1) appends time if we extend the Conc-tree data strucutre with a new node type
+
+    case class Append[T](left: Conc[T], right: Conc[T]) extends Conc[T] {
+       // same as case class <>
+    }
+
+  - Note: details in slides
+
+
+
+-------------------
+Conc-Tree Combiners
+-------------------
+- An efficient way to implement Combiners by using a variant that handles MUTABLE DATA
+
+- Conc Buffer:
+    
+    class ConcBuffer[T: ClassTag](val k: Int, private var conc: Conc[T]) {
+      private chunk: Array[T] = new Array(k)                      ^
+      private var chunkSize: Int = 0                              |
+    }                                                             |-- an internal conc tree 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

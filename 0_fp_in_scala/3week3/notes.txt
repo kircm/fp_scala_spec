@@ -1,0 +1,290 @@
+
+=====================================================
+COURSERA - Functional Programming Principles in Scala
+=====================================================
+
+======
+Week 3
+======
+
+Class Hierarchies
+-----------------
+- abstract class has to be extended
+
+- example:   [abstract IntSet]
+                      ^
+                      |
+                      |-- NonEmpty
+                      |
+                      |-- Empty
+
+- persistent data structures: 
+  - example: binary tree defined for IntSet (see worksheet)
+    - when including a NonEmpty object into an existing tree, new NonEmpty objects are created recursively up to the root level, which keeps pointing at the same subtree on the other side (left or right)
+    
+- To define Singleton objects, scala allows:
+
+      |-----> "object" instead of "class"
+      |
+    object  Empty extends IntSet {
+      def contains(x: Int): Boolean = false               |---> No need for "new" keyword
+                                                          |
+      def incl(x: Int): IntSet = new NonEmpty(x, Empty, Empty)
+    
+      override def toString = "."
+    }
+
+
+
+
+
+
+Programs
+--------
+- To create standalone applications in Scala we need a "main" method:
+  
+  object Hello {
+    def main(args: Array[String]) = println("hello world!")
+  }
+  
+- To execute: scala hello
+
+
+
+
+
+
+
+Packages
+--------
+- Classes organized in packages
+
+  package progfun.example
+  
+  object Hello { ... }
+
+
+
+- fully qualified name of object:
+   progfun.example.Hello
+
+   
+   
+- To reference classes across packages:
+
+  import week3.Rational
+  import week3.{Rational, Hello}
+  import week3._            ^
+               ^            |
+               |            |--- import a set of classes from package
+               |               
+               |--- import everything in package
+                 
+
+                 
+- automatic package imports:
+  
+  scala
+  java.lang
+  scala.Predef   ---> members of that singleton object
+  
+
+
+
+
+
+
+
+Traits
+------
+- Similar to abstract classes
+
+  trait Planar {
+    def height: Int
+    def width: Int
+    def surface = height * width
+  }       ^
+          |
+          |-- traits contain fields and implement methods
+
+
+- Usage:
+
+  class Square extends Shape with Planar with Movable with...
+  
+
+
+
+
+
+
+
+Scala's class hierarchy
+-----------------------
+                                             scala.Any                                                                              
+                              ------------------^-----------------------                                                                                                      
+                              |                                        |      
+                    scala.AnyVal                                 scala.AnyRef                                 
+                      ^  ^ ^^^^                           (in java java.lang.Object)                                 
+            scala.Double | ...                                     ^                                                       
+               scala.Float                              scala.ScalaObject                 java.lang.String                
+                 scala.Long                                   ^                                       
+                    scala.Int                           scala.Iterable                                                
+                       scala.Short                           ^                                                  
+                         scala.Byte                     scala.Seq             (other)                                        
+                          scala.Unit                         ^
+                            scala.Boolean               scala.List
+                               scala.Char
+                                                                              
+                                                                 scala.Null             
+                                                     scala.Nothing                         
+                                                                              
+                                                                              
+- Any: base type of all types
+- AnyRef: base type of all reference types (java.lang.Object)
+- AnyVal: base type of all primitive types
+                                                                              
+                                                                              
+- Nothing:
+  - type for return type of  methods that terminates abnormally
+  - Set[Nothing]
+          ^
+          |-- Set with no elements
+   - throw Exc
+      ^
+      |-- statement returns type Nothing
+
+                                                                              
+- Null:
+  - subclass of any reference type
+  - type of "null" reference initialization:   val x = null
+
+
+
+
+                                                                              
+
+
+Polymorphism
+------------
+- Cons-Lists: Like linked lists. Defined as types, they are composed of either:
+  Nil
+   or
+  Cons
+     elememt1
+     -> Cons  ---------------> pointer to another Cons
+           element2
+           -> Nil
+             
+- example: List(1, 2, 3)
+- example of nested list:  List(List(true, false), List(3))
+
+
+- Scala representation: we have a trait and two classes: Nil, Cons. 
+
+  package week3
+  
+  trait IntList ...
+   
+  class Cons(val head: Int, val tail: IntList) extends IntList ...
+              ^
+              |
+              |--- val is an abbreviation that defines at the same time constructor parameters and fields of a class
+              
+  class Nil extends IntList ...
+  
+
+
+- We have defined an IntList. But we can  generalize the type of List:
+
+  package week3
+  
+  trait List[T] ...
+  
+  class Cons[T](val head: T, val tail: List[T]) extends List[T] ...
+  
+  class Nil[T] extends List[T] ..
+  
+  
+
+
+- functions can have type parameters:
+
+  def singleton[T](elem: T) = new Cons[T](elem, new Nil[T])
+
+  - calling the function:
+    
+    singleton[Bool](true)
+    singleton[Int](1)
+               ^
+               |
+               |-- scala can infer the type, so we can just call:  singleton(1)  or singleton(true)
+               
+
+
+
+- Two principal forms of polymorphism
+  - subtyping: instances of a subclass can be passed as instances of the base class
+  - generics: instances of a function or class are created by type parameterization:  List of Ints, Lists of Boleans ...
+  
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

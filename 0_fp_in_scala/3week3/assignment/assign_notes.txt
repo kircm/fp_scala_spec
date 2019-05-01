@@ -1,0 +1,45 @@
+
+Assignments
+-----------
+
+              TweetSet
+          Empty    NonEmpty
+                         elem
+                         left
+                         right
+                         
+                         
+                         
+                         
+  this            that                                                      
+        d           b
+     c    f       E   c
+   E  E  E E        E   E                                        
+                                                        
+                                                          
+   d                                                        
+ E   E                                                      
+                                                        
+                                                        
+                                                        
+                                                        
+                                                        
+                                                        
+                                                        
+                                                        
+                                                        
+                                                        
+                                                        
+                                                        
+                                                        
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                            

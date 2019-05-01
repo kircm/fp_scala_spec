@@ -1,0 +1,114 @@
+
+=====================================================
+COURSERA - Functional Programming Principles in Scala
+=====================================================
+
+======
+Week 2
+======
+
+Higher-Order Functions
+----------------------
+- Functions can be passed as parameters (or returned by a function)
+  
+  def sum(f: Int => Int, a: Int, b: Int): Int = {       ---> this function sums all the values f(x) where x is between a and b. 
+     if (a > b) 0 else f(a) + sum(a + 1, b)
+  }                             |
+                                |--> recursive call it keeps calling sum until it reaches the last integer (the original b)
+                                     when that happens sum returns 0 and gets added to f(a) in the previous call
+                                     
+                                     
+- What's the tail recursion version of sum?
+
+  def sum(f: Int => Int, a: Int, b: Int) = {
+    def loop(a: Int, acc: Int): Int = {
+      if (a > b) acc ----------------------------> When reaching this point the accumulator already has the end result, the sum of all f(n)
+      else loop(a + 1, f(a) + acc)
+    }                           |
+                                |-----------------> Use of an accumulator parameter
+    loop(a, 0)
+  }
+
+
+
+Currying
+--------
+- defining sum as a function that returns another function
+
+  def sum(f: Int => Int): (Int, Int) => Int = {
+    def sumF(a: Int, b: Int): Int = 
+       if (a > b) 0 else f(a) + sumF(a + 1, b)
+                         |
+    sumF                 |---> apply the function passed in to sum() as a parameter 
+  }   |
+      |----> return the function that sums all of f(n) numbers
+
+
+- convenient way (syntactic sugar) to define the same function:
+                         
+  def sum(f: Int => Int)(a: Int, b: Int) =     ------------------> sum()()  two lists of parameters
+    if (a > 0) 0 else f(a) + sum(f)(a+1, b)
+
+- This allows for
+  
+  sum(cube) -----> returns a function that accepts two parameters and does the sum of the cubes of n where  a <= n <= b
+       |
+       |--> (defined somewhere else. sum accepts any   f: Int => Int  )
+
+- Generalization: in a multiple parameter list, the last list are the arguments and all the previous lists are (can be) functions that can be called
+  using the last parameter list (or other parameters in other lists)
+  
+    def f(args1)(args2)...(argsn) = {
+       ....
+    }
+
+    equivalent to
+    
+    def f(args1)(args2)...(argsn-1) = {
+      def g(argsn) {
+         ....
+      }
+      g
+    }
+
+- Functional types associate to the right
+  - the type of sum is:
+    (Int => Int) => ((Int, Int) => Int)
+                    |                 |
+                    |                 |
+                    ----------------------> these parens are redundant as association to the right already tells us
+                                            that sum is "a function that accepts a function of two Ints and returns a function of
+                                            two ints that returs an int"
+                                            
+                                            
+- So, a currying example from scratch:
+  - Having:
+
+      def sum(f: Int => Int)(a: Int, b:Int) =   
+        if (a > 0) 0 else f(a) + sum(f)(a+1, b)
+
+  - We can:
+  
+      def sumCubes = sum(x => x * x * x)
+                     |
+                     |--> returns a function that accepts a: Int  and  b: Int parameters
+
+  - And use sumCubes:
+  
+      sumCubes(3, 8)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

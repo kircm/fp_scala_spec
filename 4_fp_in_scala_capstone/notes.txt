@@ -1,0 +1,125 @@
+
+========================================
+Functional Programming in Scala Capstone
+========================================
+
+
+- Sample data for stations.csv
+
+   701718,26551,+67.100,-157.850
+   701719,00490,+66.888,-157.162
+   701730,26535,+66.000,-153.700
+
+- Sample data for 2015.csv
+
+    
+- Inverse Distance Weighting 
+  - interpolate temperature (tc) of location x (locx) using temperatures (t1, t2) of other 2 locations (loc1, loc2)
+
+    ((loc1, t1) (loc2, t2)) --> tx?
+
+    d(loc1, locx) = d1  ==> w1 = 1/(d1^2) 
+    d(loc2, locx) = d2  ==> w2 = 1/(d2^2)
+
+
+    if (d1 < 1 km)      --> tx = t1
+    
+    else if (d2 < 1 km) --> tx = t2
+
+    else                --> tx = ((w1 * t1) + (w2 * t2)) / w1 + w2
+
+
+
+
+- Linear interpolation
+  
+  - Given a temperature1 and a temperature2 with known colors col1 and col2, to interpolate an 
+     unknown color colX for a known temperature X that falls BETWEEN temp1 and temp2 :
+
+     [(temp1, col1), (temp2, col2)]  ,  tempX  ==>  colX ?
+ 
+
+     col1                    colX?           col2
+     |                       |               |
+     -----+-+-+-+-++-++-++-+++-+++-+++-+++++++
+     |                       |               |
+     temp1                   tempX           temp2
+
+  
+   col1: R1, G1, B1  |
+   col2: R2, G2, B2  |
+                     | 
+   colX: RX, GX, BX  |--> RX = ( R1 * (temp2 - tempX) + R2 * (tempX - temp1) ) / (temp2 - temp1)
+                     |
+                     |--> GX = ( G1 * (temp2 - tempX) + G2 * (tempX - temp1) ) / (temp2 - temp1)
+                     |
+                     |--> BX = ( B1 * (temp2 - tempX) + B2 * (tempX - temp1) ) / (temp2 - temp1)
+
+
+
+- Image Generation 
+
+  - Image size: 360 × 180
+
+
+Pixels:
+
+          (0, 0)-----------------(179, 0)-------------------(359, 0)
+                |                                          | 
+                |                                          | 
+                |                                          | 
+                |                                          | 
+        (0, 90)-|                (179, 90)                 |-(359, 90)  
+                |                                          | 
+                |                                          | 
+                |                                          | 
+                |                                          | 
+                |                                          | 
+        (0, 179)-----------------(179, 179)-----------------(359, 179)
+
+
+
+Lat/Long:
+
+      (90, -180)-----------------(90, 0)--------------------(90, 180)
+                |                                          | 
+                |                                          | 
+                |                                          | 
+                |                                          | 
+      (0, -180)-|                (0, 0)                    |-(0, 180) 
+                |                                          | 
+                |                                          | 
+                |                                          | 
+                |                                          | 
+                |                                          | 
+     (-90, -180)----------------(-90, 0)--------------------(-90, 180)
+
+
+
+
+- Tiles  
+
+              z=1
+                ---------------------------------------------
+                | 0,0                | 1,0                  | 
+                |                    |                      | 
+                |                    |                      | 
+                |                    |                      | 
+                |-------------------------------------------|
+                | 1,0                | 1, 1                 | 
+                |                    |                      | 
+                |                    |                      | 
+                |                    |                      | 
+                |                    |                      | 
+                ---------------------------------------------
+
+
+
+        
+
+
+
+
+
+
+

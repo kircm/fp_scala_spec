@@ -1,0 +1,72 @@
+
+=====================================================
+COURSERA - Functional Programming Principles in Scala
+=====================================================
+
+======
+Week 1
+======
+
+Scala's evaluation strategy
+---------------------------
+- Having
+  def constOne(x: Int, y: => Int) = 1
+                          |
+                          |--> force evaluation of argument by name
+
+- Evaluate: constOne(1+2, loop)
+    constOne(3, loop)
+    1
+  
+- Evaluate: constOne(loop, 1+2)
+    constOne(loop, 1+2)
+    constOne(loop, 1+2)
+    ...
+    constOne(loop, 1+2)
+ 
+ 
+
+
+Conditionals And Value Definitions
+----------------------------------
+- Write a function such: 
+  and(x, y) == x && y
+  without using && or ||
+  
+  def and(x:Boolean, y: => Boolean) = if (x) y else false
+                        |
+                        |--> force evaluation of argument by name
+
+- Write a function such: 
+  or(x, y) == x || y
+  without using && or ||
+
+  def or(x:Boolean, y: => Boolean) = if (x) true else y
+                        |
+                        |--> force evaluation of argument by name
+
+
+Tail Recursion
+--------------
+- Convert factorial into tail recursion
+
+  def factorial(n: Int): Int =
+    if (n == 1) 1 else n * factorial(n - 1)
+
+  f(4)
+    4 * f(3)
+      3 * f(2)
+        2 * f(1)
+          1
+  
+  Tail Rec would do:   
+  f(4, ..)
+    f(3, 4)
+      f(2, 3)
+        f(1, 2)
+          2                    |--> intermediate result
+                               |
+  def factorialTailRec(n: Int, r: Int): Int =
+    if (n == 1) r else factorialTailRec(n - 1, n * r)
+  
+ 

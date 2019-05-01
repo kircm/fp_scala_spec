@@ -1,0 +1,308 @@
+
+==========================
+FP Design in Scala - week1
+==========================
+
+-----------------------------
+Recap from FP in Scala course
+-----------------------------
+
+- Scala Cheat sheet
+  https://www.coursera.org/learn/progfun2/supplement/BDqfw/cheat-sheet
+
+- Reactive Cheat sheet
+  https://www.coursera.org/learn/progfun2/supplement/H8MtC/reactive-cheat-sheet
+
+- Case classes are Scala's preferred way to define complex data structures
+- Pattern matching is used to decompose those structures
+
+- Pattern matching can also be used for Option values.
+  Some functions (like Map.get) return a value of type Option[T] which is either a value of type Some[T] or the value None
+
+
+- Partial Functions
+  - In Scala the trait PartialFunction is a subtype of the trait Function1 that is well defined on a subset of its domain.
+  
+    trait PartialFunction[-A, +R] extends Function1[-A, +R] {
+      def apply(x: A): R
+      def isDefinedAt(x: A): Boolean
+    } 
+  
+  - Every concrete implementation of PartialFunction has the usual apply method along with a boolean method isDefinedAt
+  
+
+
+- All Collection types share a set of core methods:
+  - map
+  - flatMap
+  - filter
+  - and also:
+    - foldLeft
+    - foldRight
+
+- For-comprehensions are syntactic sugar for combinations of the core methods map, flatMap, filter.
+  - Example:
+    for (x <- e1) yield e2
+                         |                         
+      is the same as     |--> some expression that may access x
+
+    e1.map(x => e2)
+
+
+- Scala compiler translates the for-expressions in terms of map, flatMap and a lazy variant of filter
+  - Example with filter:
+
+    for (x <- e1 if f) yield e2
+                    |
+                    |--> a filter function 
+
+        is translated to
+
+    for (x <- e1.withFilter(x => f)) yield e2
+                    |
+                    |--> withFilter is a variant of filter [ example: e1.filter(x => x > 3) ]
+                         that does not produce an intermediate list but only restricts 
+                         the domain of the subsequent map, flatMap, foreach and withFilter operations
+
+  - Example with flatMap:
+
+    for (x <- e1; y <- e2) yield e3  
+       
+        is translated initially to:
+
+    e1.flatMap(x => for (y <- e2) yield e3)
+                     |
+                     |--> the inner for will be transated as map, as seen in the first example
+
+
+- for-expressions can specify a pattern on the left-hand side of a generator ("x <- e1"  is a generator)
+  - Example with patterns: 
+
+    case class Person(firstName: String, lastName: String)
+
+    val people = List(
+      Person("Maggie", "Smith"),
+      Person("John", "Doe"),
+      Person("Maggie", "Peterson")
+    )
+
+    for (Person("Maggie", last) <- people) yield "Ms. " + last
+
+    > List("Ms. Smith", "Ms. Peterson")
+
+
+
+
+----------------
+Queries with For
+----------------
+- For-comprehensions are equivalent to the common operations provided by SQL
+
+- For-expressions are not limited to Scala Sequences.
+  They can be used in any classes that have defined the core methods map, flatMap, filter
+
+
+- Example: find authors who have been written at least two books
+  
+  val books: Set[Book] = Set(
+    Book(title = "Effective Java", authors = Set("Bloch, Joshua", "Gafter, Neil")),
+    Book(title = "...", authors = Set(...))
+    ...
+
+  for {
+    b1 <- books       --> map across all books (first generator)
+    b2 <- books       --> second generator for all books
+    if b1 != b2       --> filter unique books
+    a1 <- b1.authors  --> generate authors 
+    a2 <- b2.authors  --> generate authors 
+    if a1 == a2       --> filter to keep authors that are the same for two different books
+  } yield a1
+          |
+          |--> yield the authors found
+
+  - the for-expression above produces duplicates because the b1, b2 pairs are combinations of all books that are not the same, in any order
+    the way to fix it:  
+      if (b1.title < b2.title)  --> use this filter to get distinct books and also in lexicographic order
+
+ 
+
+
+----------------------------
+Functional Random Generators
+----------------------------
+
+- Having defined trait Generator[+T] we can implement a random generator for ints:
+
+    trait Generator[+T] {
+      def generate: T 
+    }
+    
+    val integers = new Generator[Int] {
+      val rand = new java.util.Random
+      def generate = rand.nextInt()  
+    }
+
+- From that generator we can implement generators for other domains: booleans, strings, pairs, tuples, lists, sets and trees
+
+- Tree definition:
+
+    trait Tree
+    
+    case class Node(left: Tree, right: Tree) extends Tree
+    
+    case class Leaf(value: Int) extends Tree
+
+
+
+------
+Monads 
+------
+- Monads are constructs that encapsulate values of a data type T creating a new type U associated with a specific computation (function)
+                                                                                       ---------------
+                                                                                             |
+                                                                                             |--> it doesn't compute the function,
+                                                                                             just associates the new type with it.
+                                                                                             At a later point in time one can
+                                                                                             actually apply the function.
+
+- Monads define operations
+  - unit (generator)
+  - flatMap (aka bind)
+  - map (optional)
+- The map operation can be defined as a combination of flatMap and unit
+
+- They also  fullfil some algebraic rules:
+  - associativity:    m flatMap f flatMap g == m flatMap (f flatMap g)
+  - left unit         unit(x) flatMap f == f(x)              
+  - right unit        m flatMap unit == m
+
+  
+- Operation definitions in scala:
+
+  - flatMap - from a Monad with parametric type T return another Monad of another parametric type U
+    - Examples:
+      - The List structure in Scala is a Monad
+        - Having
+          val myListOf = List(List(1, 2), List(3, 4))  -----> Type T is List (the inner List)
+        - Running flatMap
+          myList.flatMap(el => el + 1)
+          >  List(2, 3, 4, 5)    ---------------------------> Type U is Int
+              
+
+      - Option is also a Monad
+        - val myOption: Option[String] = Some("string")
+                                          |
+                                          |--> that's the unit operation for monad Option
+                                               remember "Some" is a subclass of "Option" (and "None" also is)
+
+        - Running flatMap
+          myOption.flatMap(el => Some(el + "APPENDED"))
+          > Some("stringAPPENDED")
+                      |
+                      |--> In this case type U is also a String but could have been the type "Nothing" (means "no type" in scala)
+                           For example, doing flatMap on None returns None which can be considered an Option[U] where U is Nothing
+
+
+  - unit - generate a monoid (single encapsulation)
+      
+                   |---- parametric type T 
+                   V
+          def unit[T](x:T): M[T]
+                            ^
+                            |--- monad M
+                              
+    - Example:
+      - def myList = List(Some(1), Some(2), Some(3))
+                            ^
+                            |--- Type T is Option
+                                             ^
+                                             |--- Option in Scala is either an instance of Some or the object None
+                            
+
+
+
+- The type "Try" (IS NOT A MONAD because left unit law fails)
+  - similar than Option, but instead of encapsulating an optional value it encapsulates a failed/succeeded computation
+  
+  - definition
+
+    abstract class Try[+T]
+                       |
+                       |--> this is the variance stuff (how to manage subtypes)
+  
+    case class Success[T](x: T) extends Try[T]
+                          |
+                          |--> x is of type T, it's the result of a successful operation
+
+    case class Failure(ex: Exception) extends Try[Nothing]
+                       |                      ------------
+                       |                            |
+                       |                            |--> "Nothing" is "no type", so it's saying "Failure is a Try of no type" 
+                       |
+                       |--> ex is an exception that was captured when perfoming a computation
+
+  - creating a Try:
+
+    Try(expression)  --> never fails. returns either Success(someValue) or Faiure(someException)
+
+    - A Try object has to be implemented so that the expression is passed as by name:
+         ...
+         def apply[T](expr: => T) ...
+                            |
+                            |--> by name
+         ...
+
+
+
+  - use of Try in for:
+
+    for {
+      x <- computeX
+      y <- computeY
+    } yield f(x, y)
+
+    - if both computeX and computeY succeed, the for will return Success(f(x, y))
+      if either of them fail with exception ex this will return Failure(ex)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

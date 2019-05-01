@@ -1,0 +1,152 @@
+
+=============================
+Parallel Programming - week 2
+=============================
+
+---------------------------
+Parallelism and collections
+---------------------------
+
+- operations on collections that are key to functional programming 
+  and important to parallel programming as they encapsulate more complex
+  algorithms commonly used in parallel collections: 
+
+  - map     List(1, 3, 8).map(x => x * x) == List(1, 9, 64)
+
+  - fold    List(1, 3, 8).fold(100)((s, x) => s + x) == 112                           (sums all elements using an initial element: 100)  
+    reduce  List(1, 3, 8).reduce((s, x) => s + x) == 12                               (when no initial element: reduce. it assumes non-empty input list)
+
+  - scan    List(1, 3, 8).scan(100)((s, x) => s + x) == List(100, 101, 104, 112)      (like fold but outputting each intermediate step)
+
+
+- Use of List() is actually not a good choice
+- Use of imperative Array is better due to the internal organization of elements
+- Use of balanced trees is even better (with some caveats: high memory allocation and bad locality in memory)
+  - they work well with functional programming:
+    - immutable tree
+    - new trees are created on top of original tree as the values evolve, references to older versions of the tree still work (but with data not up-to-date)
+  - no need to worry with collision of indexes
+  - it's efficient to combine two trees (arrays are expensive to concatenate)
+
+- Scala offers parallel collections
+
+
+-------------
+fold / reduce
+-------------
+- the reduce is like the fold without a starting element (it assumes the input list is not empty)
+
+- Variants of fold and reduce
+
+  List(1, 3, 8).foldLeft(100)((s, x) => s - x) == ((100 - 1) - 3) - 8 = 88
+
+  List(1, 3, 8).foldRight(100)((s, x) => s - x) == 1 - (3 - (8 - 100)) = -94
+
+  List(1, 3, 8).reduceLeft((s, x) => s - x) == (1 - 3) - 8 = -10
+
+  List(1, 3, 8).reduceRight((s, x) => s - x) == 1 - (3 - 8) == 1 - (-5) = 6 
+
+- Only ASSOCIATIVE operations can be parallelized
+  - Examples: plus
+              string concatenation
+              appending lists (++)
+
+  - Counter example: minus
+
+
+-------------
+Associativity
+-------------
+-  ASSOCIATIVE     !=     COMMUTATIVE 
+  f(f(a, b), c)          f(f(a, b), c)
+       ||                     ||
+  f(a, f(b, c))          f(f(c, a), b)   
+
+
+- Exaples of associative and commutative:
+  - addition multipliction (not for floating point numbers!)
+  - union intersection 
+  - boolean && || xor
+  - addition of vectors
+  - addition of matrices of fixed dimensions
+
+- Examples of assosiative not commutative
+  - append lists
+  - concatenate strings
+
+- Examples of commutative not associative
+  - f(x, y) = pow(x, 2) + pow(y, 2)
+
+    f(x, y) == f(y, x)
+      but 
+    f(f(x, y), z) != f(x, f(y, z))
+    
+
+----
+scan
+----
+
+- scanLeft / scanRight --> same as fold but keeping partial results. Resulting List is one element larger than original List.
+
+  List(1, 3, 8).scanLeft(100)((s, x) => s + x) ==  List(100, 101, 104, 112)
+
+  List(1, 3, 8).scanRight(100)((s, x) => s + x) == List(100, 108, 111, 112)
+
+
+- How to parallelize scan given the fact that each element in the output list depends on its previous element on the input list?
+  To parallelize a scan, we can use a Tree that stores temporary results of the operations in the non-leaf nodes
+
+
+  - Example:    List(1, 3, 8, 50).scanLeft(100)((s, x) => s + x) ==  (100, 101, 104, 112, 162)
+  |
+  |-> input list ---> 1 3 8 50      
+  |
+  |-> the building of the following  tree is called upswep and can be done in parallel                                                     
+  |
+  |          TreeRes:  
+  |            62 (NodeRes)
+  |          /    \
+  |        4       58 (NodeRes)     
+  |      /   \    /   \        
+  |     1     3  8     50 (LeafRes)           
+  |
+  |
+  |-> once we have this tree we can downsweep it (in parallel) so that the resulting tree contains the output list in its leafs
+  |   downsweeping reuses intermediate results stored in nodes of class NodeRes:                                               
+  |
+  |    def downsweep[A](t: TreeRes[A], a0: A, f : (A,A) => A): Tree[A] = t match {
+  |
+  |      case LeafRes(a) => Leaf(f(a0, a))
+  |
+  |      case NodeRes(l, _, r) => {
+  |        val (tL, tR) = parallel(downsweep[A](l, a0, f), downsweep[A](r, f(a0, l.res), f))
+  |        Node(tL, tR)                                                          |
+  |      }                                                                       |--> here is where it reuses result from left branch before going deeper into right branch
+  |    
+  |    }
+  |  
+  |                                                          a0: 100
+  |
+  |           TreeRes:                                       Tree:
+  |              62 (NodeRes)                                   N  (Node)                   
+  |            /    \                                        /    \
+  |          4       58         ===== downsweep =====>     N        N          
+  |        /   \    /   \                                /   \    /   \        
+  |       1     3  8     50 (LeafRes)                   101  104 112  162  (Leaf)         
+  |                                                      |    |   |     |       
+  |                                                      |    |   |     |--> a0 + NodeRes(4) + LeafRes(8) + LeafRes(50)
+  |                                                      |    |   |--> a0 + NodeRes(4) + LeafRes(8)
+  |                                                      |    |--> a0 + LeafRes(1) + LeafRes(3)
+  |                                                      |--> a0 + LeafRes(1) 
+  |
+  |
+  |-> output list --> 100 101 104 112 162
+  |                   |   |   |   |    |--> Leaf(162)
+  |                   |   |   |   |--> Leaf(112)
+  |                   |   |   |--> Leaf(104)
+  |                   |   |--> Leaf(101)
+  |                   |--> a0: 100                                            
+  | 
+  |  (check slides for detailed explanation)                                       
+                                                       
+

@@ -1,0 +1,61 @@
+
+=============================================================================================================================================
+Implement a distributed k-means algorithm which clusters posts on the popular question-answer platform StackOverflow according to their score
+=============================================================================================================================================
+
+---------------
+groupedPostings
+---------------
+- Input                                           
+                              
+    1,11111,33333,,0,Java                 
+    2,22222,,11111,0,                 
+    2,33333,,11111,10,                 
+
+- Output
+
+    (11111,
+      CompactBuffer(
+       (Posting(1,11111,Some(33333),None,0,Some(Java)),
+        Posting(2,22222,None,Some(11111),0,None)), 
+                                                          
+        (Posting(1,11111,Some(33333),None,0,Some(Java)),
+         Posting(2,33333,None,Some(11111),10,None))
+      )
+    )
+
+
+
+---------------
+scoredPostings
+---------------
+- Input 
+                              
+    1,11111,33333,,0,Java                 
+    2,22222,,11111,0,                 
+    2,33333,,11111,10,                 
+
+- Output
+
+    (Posting(1,11111,Some(33333),None,0,Some(Java)),10)
+
+-------
+
+- Input
+
+    1,11111,33333,,0,Java
+    2,22222,,11111,0,
+    2,33333,,11111,10,
+    1,44444,66666,,0,Java
+    2,55555,,44444,20,
+    2,66666,,44444,10,
+
+- Output
+
+    (Posting(1,44444,Some(66666),None,0,Some(Java)),20)
+    (Posting(1,11111,Some(33333),None,0,Some(Java)),10)
+    
+
+
+
+

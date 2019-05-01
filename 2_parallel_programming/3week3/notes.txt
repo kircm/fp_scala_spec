@@ -1,0 +1,356 @@
+
+=============================
+Parallel Programming - week 3
+=============================
+
+- Data parallelism vs Task parallelism
+          |             |
+          |             |--> Distribute execution processes across nodes
+          |--> Distribute data across computing nodes                  
+
+
+- In scala, we call method "par" on a parallel collection
+
+  def initializeArray(xs: Array[Int])(v: Int): Unit = {
+    for (i <- (0 until xs.length).par) {
+      xs(i) = v                    |
+    }                              |--> converts de range into a parallel range:
+  }                                |     
+                                   |          scala.collection.immutable.Range --> scala.collection.parallel.immutable.ParRange
+                                   |     
+                                   |--> iterations of the for loop will execute concurrently in different processes
+
+- Parallel for loop can only interact with the rest of the program by performing side effects
+
+- The main advantage of Data Parallelism vs Task Parallelism is that the data-parallel scheduler tries to balance workload of processes dedicated to the computations
+
+
+
+--------------------
+Parallel Collections
+--------------------
+- In Scala, most collection operations can become data-parallel
+
+- The .par call converts a sequential collection to a parallel collection
+
+- Operations 
+  - foldLeft
+  - foldRight
+  - reduceLeft
+  - reduceRight
+  - scanLeft
+  - scanRight  
+       |
+       V
+  - must process the elements sequentially due to their signature. 
+
+- Example: 
+  - Instance method for collection myCollection[A]:
+     def foldLeft[B](z: B)(f: (B, A) => B): B
+                                 |
+                                 |--> function f can't be used across elements of type A of myCollection 
+                                      because signature defines type B for accumulator, 
+                                      which is also the type of f's output (applying f to an element of myCollection + accumulator)
+- So those are Non-Parallelizable Operations
+
+- Parallelizable operation FOLD:
+
+  def fold(z: A)(f: (A, A) => A): A
+                     |
+                     |--> function f can be executed with different elements (of type A) of the collection (and accumulator) in parallel
+                          as long as partial results are combined into the final result:
+
+                              A -
+                                 |-- f --> A --
+                              A -              |
+                                               |-- f --> A             
+                              A -              |                
+                                 |-- f --> A --
+                              A -
+
+
+
+----------------
+Operation fold()
+----------------
+
+- In order to parallel fold() to work properly:
+
+  -  the function applied must have associativity property:
+     f(a, f(b, c)) == f(f(a, b), c)
+   
+   - applying f on the neutral element (initial value for accumulator) and an element must be a commutative operation in this way:
+     f(z, a) == f(a, z) == a
+
+     - Note: We say that the neutral element z and the binary operator f must form a monoid (wikipedia: algebraic structure with a single associative binary operation and an identity element)
+     - Note: commutativity on f(a, b) is not necessary
+
+
+- Limitations on the fold operation:
+  - the type of the elemens in the collection must be the same of the accumulator and the return value of f
+
+  - for example, we can't use fold to count the number of vowels in a list of characters
+
+
+
+---------------------
+Operation aggregate()
+---------------------
+
+- Signature:
+
+  def aggregate[B](z: B)(f: (B, A) => B, g: (B, B) => B): B
+                                         |
+                                         |--> function g defines an additional task that processes must do: combine the outputs of two f executions
+
+- Implementing the counting of vowels in a list of characters in parallel:
+
+  Array(‘E‘, ‘P‘, ‘F‘, ‘L‘).par.aggregate(0)((count, c) => if (isVowel(c)) count + 1 else count, _ + _)
+                                          |  --------------------------------------------------    |
+                                          |             |                                          |-->  g function (combines the output of two f's)
+                                          |             |--> f function (checks if c is a vowel and produces new accumulator)
+                                          |--> accumulator
+
+- g is called the "parallel reduction operator"
+
+
+
+---------------------
+Transformer operators
+---------------------
+
+- Operations
+  - map
+  - filter
+  - flatMap
+  - groupBy
+      |
+      V
+  - return new collections as results (unlike accessor combinators seen previously that return a single value)
+  - they can be executed in parallel  
+
+
+
+
+
+--------------------------
+Scala Parallel Collections
+--------------------------
+
+- Scala Sequential Collections Hierarchy:
+
+  - Traversable[T] --> implement foreach() method
+    Iterable[T]    --> use iterator() method
+    Seq[T]         --> ordered sequence
+    Set[T]         --> un-ordered set with no duplicates
+    Map[K, V]      --> key-value associations
+
+- Scala Parallel Collections Hierarchy
+  - Parallel counterparts of sequential collections:
+
+    - ParIterable[T]
+      ParSeq[T]
+      ParSet[T]
+      ParMap[K, V]
+
+  - For code that is agnostic about parallelism there are Generic Collections
+
+    - GenIterable[T]
+      GenSeq[T]
+      GenSet[T]
+      GenMap[K, V]
+
+    - Generic collection traits allow us to write code that is unaware of parallelism  
+    - For example: 
+
+      def largestPalindrome(xs: GenSeq[Int]): Int = { ... }
+                                ^
+                                |
+                                |-- can be called with an Array[Int] or a ParArray[Int]
+                                                              |                |
+                                                              |                |--> class in package
+                                                              |                     scala.collection.parallel.mutable
+                                                              |                     
+                                                              |--> class in package
+                                                                   scala 
+                                                                   (core scala types)
+
+- Hierarchy relationships between the traits mentioned above: check slides
+
+- A Sequential Collection can be converted into a Parallel one by calling the method: 
+
+    par
+
+  - Example: 
+    val myRange = (1 to 10000) 
+    val myArray = myRange.toArray
+
+    val myParArray = myArray.par
+
+      > myParArray: scala.collection.parallel.mutable.ParArray[Int]
+
+- Example of Parallel Collection classes and their sequential counterparts:
+
+    Array[T]   --> ParArray[T]
+    Range      --> ParRange
+    Vector[T]  --> ParVector[T]
+
+    immutable.HashSet[T]       --> parallel.immutable.ParHashSet[T]
+    immutable.ParHashMap[K, V] --> parallel.immutable.ParHashMap[K, V]
+
+    mutable.HashSet[T]       --> parallel.mutable.ParHashSet[T]
+    mutable.ParHashMap[K, V] --> parallel.mutable.ParHashMap[K, V]
+
+    concurrent.TrieMap[K, V] --> parallel.mutable.ParTrieMap[K, V]
+        |
+        |--> implementation of
+             concurrent.Map trait
+             allows for thread-safe
+             concurrent access
+
+- Other Sequential to Parallel collection correspondence:
+  
+    List[T] --> ParVector[T]
+
+
+
+--------------------------------------
+Parallel Access to mutable collections
+--------------------------------------
+- AVOID Parallel access to mutable collections without proper synchronization
+
+- Having a method that takes a GenSet[T]  (allows for both Sequential and Parallel Set)
+
+    def intersection(a: GenSet[Int], b: GenSet[Int]): GenSet[Int] = {
+  
+      val result = mutable.Set[Int]()
+                      |
+                      |--> MUTABLE SET!
+  
+      for (x <- a) if (b contains x) result += x
+             |                               |
+             |                               |--> WRITES TO A MUTABLE SET
+             |                               
+             |--> IF we call the method with a PARALLEL SET algorithm doesn't work properly!!
+                  - For loop executed in parallel
+                  - CONCURRENT WRITES TO A MUTABLE SET
+  
+      result
+    }
+
+
+- BETTER implementation, avoiding side effects:
+
+    def intersection(a: GenSet[Int], b: GenSet[Int]): GenSet[Int] = {
+      if (a.size < b.size) a.filter(b(_))
+                 |                    |
+                 |                    |--> applying b() to an element returns boolean (is like calling contains on b)
+                 |--> checking size for optimization, but not required
+
+      else b.filter(a(_))
+    }
+  
+- Rules:
+
+  - NEVER write to a collection that is concurrently traversed
+
+  - NEVER read from a collection that is concurrently modified
+
+
+- Exception: concurrent.TrieMap[K, V] allows for concurrent writes and provides snapshot method for reading from an immutable version of the map  
+
+
+
+
+-----------------------
+Splitters And Combiners
+-----------------------
+
+- They are Data-Parallel Abstractions
+
+- They allow to implement data-parallel operations in a generic fashion
+
+- The following constructs are useful for parallel operations on collections. (Traits are shown simplified)
+
+  - Iterators
+    
+      trait Iterator[A] {
+        def next(): A
+        def hasNext: Boolean
+      }
+  
+    - collections have a method:  def iterator: Iterator[A]   that returns an iterator for the collection
+    - fold() method can be implemented in an iterator by doing    while(hasNext) f(next())  accumulating the values:
+
+        def foldLeft[B](z: B)(f: (B, A) => B): B = {
+          var result = z
+          while (hasNext) result = f(result, next())
+          result
+        }      
+  
+  
+
+  - Splitters
+    - they are counterparts of iterators for parallel programming
+  
+      trait Splitter[A] extends Iterator[A] {
+        def split: Seq[Splitter[A]]
+        def remaining: Int
+      }
+  
+    - collections have a method    def splitter: Splitter[A]   that returns an splitter for the collection
+    - example: implementing fold() method:
+
+        def fold(z: A)(f: (A, A) => A): A = {
+
+          if (remaining < threshold) foldLeft(z)(f)  ----> sequential version when it not worth to spawn different tasks
+
+          else {
+            
+            val children = for (child <- split) yield task { child.fold(z)(f) }
+                            |                         |                              
+                            |--> comprehensive for    |--> yield a task that will execute: child.fold(z)(f)       
+
+            children.map(_.join()).foldLeft(z)(f)
+                           |
+                           |--> wait for all the parallel tasks to finish call foldLeft on their results to produce a total
+          }
+        }    
+
+
+  
+  - Builders
+    - Abstractions for creating new collections
+
+      trait Builder[A, Repr] {
+        def +=(elem: A): Builder[A, Repr]    ---> adds an element of type A to the Builder and returs a new Builder that includes that element
+
+        def result: Repr   ---> returns a collection (of type Repr) that contains all the elements that have been added to the builder
+      }
+
+    - collections have a method   def newBuilder: Builder[A, Repr]     that returns a builder for that collection
+    - example, a list of integers would have newBuilder return a  Builder[Int, List[Int]]  
+
+
+  
+  - Combiners
+    - They are the parallel version of Builders
+
+      trait Combiner[A, Repr] extends Builder[A, Repr] {
+        def combine(that: Combiner[A, Repr]): Combiner[A, Repr]
+      }
+
+    - parallel collections have a method    def newCombiner: Combiner[T, Repr]   that returns a combiner for that collection
+  
+
+  
+
+  
+
+
+
+
+
+
+
+

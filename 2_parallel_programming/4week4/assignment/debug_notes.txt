@@ -1,0 +1,58 @@
+LEAF: Leaf(5.0,5.0,10.0,List(Body(10.0,10.0,10.0,0.0,0.0)))
+
+Leaf (5.0, 5.0, 10.0).insert() b: Body(10.0,7.0,7.0,0.0,0.0)
+Leaf.insert() size: 10.0
+Leaf.insert() newQuadsSize: 5.0
+Leaf.insert() newQuadsOffset: (0.0,0.0)
+Leaf.insert() newFork: Fork(Empty(2.5,2.5,5.0),Empty(7.5,2.5,5.0),Empty(2.5,7.5,5.0),Empty(7.5,7.5,5.0))
+
+Fork (5.0, 5.0, 10.0).insert() Body: Body(10.0,10.0,10.0,0.0,0.0)
+Fork.insert() quadToInsertTo: (SE,Empty(7.5,7.5,5.0))
+Fork.insert() newQuad: Leaf(7.5,7.5,5.0,List(Body(10.0,10.0,10.0,0.0,0.0)))
+Fork.insert() newForkWithNewQuad: Fork(Empty(2.5,2.5,5.0),Empty(7.5,2.5,5.0),Empty(2.5,7.5,5.0),Leaf(7.5,7.5,5.0,List(Body(10.0,10.0,10.0,0.0,0.0))))
+
+Fork (5.0, 5.0, 10.0).insert() Body: Body(10.0,7.0,7.0,0.0,0.0)
+Fork.insert() quadToInsertTo: (SE,Leaf(7.5,7.5,5.0,List(Body(10.0,10.0,10.0,0.0,0.0))))
+
+Leaf (7.5, 7.5, 5.0).insert() b: Body(10.0,7.0,7.0,0.0,0.0)
+Leaf.insert() size: 5.0
+Leaf.insert() newQuadsSize: 2.5
+Leaf.insert() newQuadsOffset: (5.0,5.0)
+Leaf.insert() newFork: Fork(Empty(6.25,6.25,2.5),Empty(8.75,6.25,2.5),Empty(6.25,8.75,2.5),Empty(8.75,8.75,2.5))
+
+Fork (7.5, 7.5, 5.0).insert() Body: Body(10.0,10.0,10.0,0.0,0.0)
+Fork.insert() quadToInsertTo: (SE,Empty(8.75,8.75,2.5))
+Fork.insert() newQuad: Leaf(8.75,8.75,2.5,List(Body(10.0,10.0,10.0,0.0,0.0)))
+Fork.insert() newForkWithNewQuad: Fork(Empty(6.25,6.25,2.5),Empty(8.75,6.25,2.5),Empty(6.25,8.75,2.5),Leaf(8.75,8.75,2.5,List(Body(10.0,10.0,10.0,0.0,0.0))))
+
+Fork (7.5, 7.5, 5.0).insert() Body: Body(10.0,7.0,7.0,0.0,0.0)
+Fork.insert() quadToInsertTo: (NW,Empty(6.25,6.25,2.5))
+Fork.insert() newQuad: Leaf(6.25,6.25,2.5,List(Body(10.0,7.0,7.0,0.0,0.0)))
+Fork.insert() newForkWithNewQuad: Fork(Leaf(6.25,6.25,2.5,List(Body(10.0,7.0,7.0,0.0,0.0))),Empty(8.75,6.25,2.5),Empty(6.25,8.75,2.5),Leaf(8.75,8.75,2.5,List(Body(10.0,10.0,10.0,0.0,0.0))))
+Fork.insert() newQuad: Fork(Leaf(6.25,6.25,2.5,List(Body(10.0,7.0,7.0,0.0,0.0))),Empty(8.75,6.25,2.5),Empty(6.25,8.75,2.5),Leaf(8.75,8.75,2.5,List(Body(10.0,10.0,10.0,0.0,0.0))))
+Fork.insert() newForkWithNewQuad: Fork(Empty(2.5,2.5,5.0),Empty(7.5,2.5,5.0),Empty(2.5,7.5,5.0),Fork(Leaf(6.25,6.25,2.5,List(Body(10.0,7.0,7.0,0.0,0.0))),Empty(8.75,6.25,2.5),Empty(6.25,8.75,2.5),Leaf(8.75,8.75,2.5,List(Body(10.0,10.0,10.0,0.0,0.0)))))
+
+
+RESULT: 
+
+Fork(
+  Empty(2.5,2.5,5.0),
+  Empty(7.5,2.5,5.0),
+  Empty(2.5,7.5,5.0),
+  Fork(
+    Leaf(6.25,6.25,2.5,List(Body(10.0,7.0,7.0,0.0,0.0))),
+    Empty(8.75,6.25,2.5),
+    Empty(6.25,8.75,2.5),
+    Leaf(8.75,8.75,2.5,List(Body(10.0,10.0,10.0,0.0,0.0)))))
+
+
+
+
+
+
+
+
+
+
+
+    

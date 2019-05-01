@@ -1,0 +1,18 @@
+ 
+[Test Description] 'insert' should work correctly on a leaf with center (1,1) and size 2 
+
+[Observed Error] 
+
+  Fork(                                                     NW: (0.5, 0.5)   NE: (1.5, 0.5)    SW(0.5, 1.5)    SE(1.5, 1.5)
+    Leaf(0.5,0.5,1.0,List(Body(5.0,0.4,0.4,0.1,0.1))), NW     
+    Empty(1.5,0.5,1.0),                                NE
+    Leaf(0.5,1.5,1.0,List(Body(5.0,1.4,0.4,0.1,0.1))), SW  ---> WHY?? ----> BUG in findQuadrantForNewBody()
+    Empty(1.5,1.5,1.0))                                SE
+
+ did not equal 
+  Fork(
+    Leaf(0.5,0.5,1.0,List(Body(5.0,0.4,0.4,0.1,0.1))), NW         
+    Leaf(1.5,0.5,1.0,List(Body(5.0,1.4,0.4,0.1,0.1))), NE  ---> OK Body(1.4, 0.4)  
+    Empty(0.5,1.5,1.0),                                SW
+    Empty(1.5,1.5,1.0))                                SE  
+
